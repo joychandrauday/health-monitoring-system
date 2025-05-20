@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { IMedicalNotification, Vital } from '@/types';
-import { saveNotification, getNotifications, clearNotifications, acknowledgeNotification } from '@/service/notification/Notification';
+import { getNotifications, clearNotifications, acknowledgeNotification } from '@/service/notification/Notification';
 import { useSession } from 'next-auth/react';
 import useSocket from '@/hooks/useSocket';
-import { FaBell, FaCheckCircle } from 'react-icons/fa';
+import { FaCheckCircle } from 'react-icons/fa';
 
 interface VitalAlert {
     sender: string;
@@ -18,6 +18,7 @@ interface VitalNotification {
     sender: string;
     vitalId: string;
     vital: Vital;
+    notification: IMedicalNotification;
 }
 
 interface AcknowledgmentNotification {
@@ -37,7 +38,10 @@ export const useNotifications = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             if (!session?.user?.id || !session?.user?.accessToken) {
-                console.log('No session, skipping notification fetch');
+                console.log('Cannot fetch notifications: Missing session data', {
+                    userId: session?.user?.id,
+                    accessToken: session?.user?.accessToken ? 'Present' : 'Missing',
+                });
                 setIsLoading(false);
                 return;
             }
@@ -45,13 +49,13 @@ export const useNotifications = () => {
             setIsLoading(true);
             try {
                 const fetchedNotifications = await getNotifications({
-                    userId: session?.user?.id as string,
-                    token: session?.user?.accessToken as string,
+                    userId: session.user.id as string,
+                    token: session.user.accessToken as string,
                 });
-                console.log('Fetched notifications:', fetchedNotifications); // Debug log
-                setNotifications(fetchedNotifications || []);
+                console.log('Raw fetched notifications:', fetchedNotifications);
+                setNotifications(fetchedNotifications);
             } catch (error: any) {
-                console.error('Error fetching notifications:', error.message);
+                console.error('Error fetching notifications:', error.message, error);
                 toast.error(error.message || 'Failed to load notifications', {
                     style: {
                         background: '#F5F7FA',
@@ -65,7 +69,7 @@ export const useNotifications = () => {
         };
 
         fetchNotifications();
-    }, [session?.user?.accessToken, session?.user?.id]);
+    }, [session?.user?.id, session?.user?.accessToken]);
 
     // Socket setup
     useEffect(() => {
@@ -74,11 +78,12 @@ export const useNotifications = () => {
                 socket: !!socket,
                 isConnected,
                 userId: session?.user?.id,
-                accessToken: !!session?.user?.accessToken,
+                accessToken: session?.user?.accessToken ? 'Present' : 'Missing',
             });
             return;
         }
 
+        console.log('Setting up socket listeners for user:', session?.user?.id);
         socket.emit('joinRoom', { userId: session?.user?.id as string });
         console.log(`Joined room: user:${session?.user?.id as string}`);
 
@@ -94,112 +99,42 @@ export const useNotifications = () => {
             });
         };
 
-        const handleVitalAlert = async (data: VitalAlert) => {
-            if (!data.vital) {
-                console.error('Invalid vital alert data:', data);
+        const handleVitalNew = (data: VitalNotification) => {
+            if (!data.vital || data.vital.doctorId !== session?.user?.id) {
+                console.error('Invalid or irrelevant vital notification data:', data);
                 return;
             }
+            console.log('Received vital:new:', data);
 
-            const newNotification: Omit<IMedicalNotification, '_id' | 'acknowledged'> = {
-                sender: data.vital.patientId as string,
-                receiver: data.vital.doctorId as string,
-                type: 'vital',
-                message: data.message,
-                url: `/doctor/dashboard/vitals/${data.sender}/${data.vitalId}`,
-                timestamp: data.vital.timestamp ? new Date(data.vital.timestamp) : new Date(),
-            };
+            const { notification } = data;
 
+            // Check for critical conditions (for UI purposes only, no new notification)
+            let message = notification.message;
+            let isCritical = false;
+
+            if (data.vital.heartRate && (data.vital.heartRate > 100 || data.vital.heartRate < 60)) {
+                message = `Critical Heart Rate: ${data.vital.heartRate} bpm`;
+                isCritical = true;
+            } else if (data.vital.bloodPressure && (data.vital.bloodPressure.systolic > 140 || data.vital.bloodPressure.diastolic > 90)) {
+                message = `Critical BP: ${data.vital.bloodPressure.systolic}/${data.vital.bloodPressure.diastolic} mmHg`;
+                isCritical = true;
+            }
+
+            // Update state with the backend-provided notification
             setNotifications((prev) => [
-                { ...newNotification, _id: data.vitalId, acknowledged: false },
-                ...prev,
+                { ...notification, acknowledged: false, timestamp: new Date(notification.timestamp) },
+                ...prev.filter((notif) => notif._id !== notification._id),
             ].slice(0, 20));
 
-            try {
-                const savedNotification = await saveNotification(newNotification, session?.user?.accessToken as string);
-                setNotifications((prev) =>
-                    prev.map((notif) =>
-                        notif._id === data.vitalId ? savedNotification : notif
-                    )
-                );
-            } catch (error: any) {
-                console.error('Error saving alert:', error.message);
-                toast.error(error.message || 'Failed to save alert', {
-                    style: {
-                        background: '#F5F7FA',
-                        color: '#37474F',
-                        border: '1px solid #D32F2F',
-                    },
-                });
-            }
-
-            toast.error(`${data.message} (Sender ID: ${data.sender})`, {
-                duration: 5000,
-                icon: <FaBell className="text-red-500" />,
-                style: {
-                    background: '#F5F7FA',
-                    color: '#37474F',
-                    border: '1px solid #D32F2F',
-                },
-            });
-        };
-
-        const handleVitalNew = async (data: VitalNotification) => {
-            if (!data.vital) {
-                console.error('Invalid vital notification data:', data);
-                return;
-            }
-            console.log(data);
-            const newNotification: Omit<IMedicalNotification, '_id' | 'acknowledged'> = {
-                sender: data.vital.patientId as string,
-                receiver: data.vital.doctorId as string,
-                type: 'vital',
-                message: `New vitals submitted.`,
-                url: `/doctor/dashboard/vitals/${data.vital.patientId}/${data.vitalId}`,
-                timestamp: data.vital.timestamp ? new Date(data.vital.timestamp) : new Date(),
-            };
-
-            setNotifications((prev) => [
-                { ...newNotification, _id: data.vitalId, acknowledged: false },
-                ...prev,
-            ].slice(0, 20));
-
-            try {
-                const savedNotification = await saveNotification(newNotification, session?.user?.accessToken as string);
-                setNotifications((prev) =>
-                    prev.map((notif) =>
-                        notif._id === data.vitalId ? savedNotification : notif
-                    )
-                );
-            } catch (error: any) {
-                console.error('Error saving notification:', error.message);
-                toast.error(error.message || 'Failed to save notification', {
-                    style: {
-                        background: '#F5F7FA',
-                        color: '#37474F',
-                        border: '1px solid #D32F2F',
-                    },
-                });
-            }
-
+            // Show toast
             toast.success(
                 <div>
-                    <strong>New vitals submitted (Sender ID: {data.sender})</strong>
+                    <strong>{isCritical ? 'Critical Vitals Submitted' : 'New Vitals Submitted'} (Sender ID: {data.sender})</strong>
                     <ul className="list-disc pl-4 mt-1">
                         {data.vital.heartRate && <li>Heart Rate: {data.vital.heartRate} bpm</li>}
                         {data.vital.bloodPressure && (
-                            <li>
-                                BP: {data.vital.bloodPressure.systolic}/{data.vital.bloodPressure.diastolic} mmHg
-                            </li>
+                            <li>BP: {data.vital.bloodPressure.systolic}/{data.vital.bloodPressure.diastolic} mmHg</li>
                         )}
-                        {data.vital.glucoseLevel && <li>Glucose: {data.vital.glucoseLevel} mg/dL</li>}
-                        {data.vital.oxygenSaturation && <li>O2 Sat: {data.vital.oxygenSaturation}%</li>}
-                        {data.vital.temperature && <li>Temp: {data.vital.temperature}°C</li>}
-                        {data.vital.respiratoryRate && <li>Resp Rate: {data.vital.respiratoryRate}/min</li>}
-                        {data.vital.painLevel && <li>Pain: {data.vital.painLevel}/10</li>}
-                        {data.vital.injury?.type && data.vital.injury.type !== 'none' && (
-                            <li>Injury: {data.vital.injury.type}</li>
-                        )}
-                        {data.vital.visuals?.length ? <li>Images: {data.vital.visuals.length}</li> : null}
                     </ul>
                 </div>,
                 {
@@ -215,29 +150,19 @@ export const useNotifications = () => {
         };
 
         const handleNotificationAcknowledged = async (data: AcknowledgmentNotification) => {
-            if (data.notification.receiver === session?.user?.id as string) {
-                setNotifications((prev) => [
-                    { ...data.notification, timestamp: new Date(data.notification.timestamp) },
-                    ...prev,
-                ].slice(0, 20));
+            console.log('Received notification:acknowledged:', data);
 
-                try {
-                    const savedNotification = await saveNotification(data.notification, session?.user?.accessToken as string);
-                    setNotifications((prev) =>
-                        prev.map((notif) =>
-                            notif._id === data.notificationId ? savedNotification : notif
-                        )
-                    );
-                } catch (error: any) {
-                    console.error('Error saving acknowledgment notification:', error.message);
-                    toast.error(error.message || 'Failed to save acknowledgment notification', {
-                        style: {
-                            background: '#F5F7FA',
-                            color: '#37474F',
-                            border: '1px solid #D32F2F',
-                        },
-                    });
-                }
+            try {
+                // Add the new acknowledgment notification to the state
+                const newNotification = {
+                    ...data.notification,
+                    timestamp: new Date(data.notification.timestamp),
+                };
+                setNotifications((prev) => [
+                    newNotification,
+                    ...prev.filter((notif) => notif._id !== newNotification._id),
+                ].slice(0, 20));
+                console.log('Added acknowledgment notification:', newNotification);
 
                 toast.success(data.message, {
                     duration: 5000,
@@ -248,17 +173,24 @@ export const useNotifications = () => {
                         border: '1px solid #2E7D32',
                     },
                 });
+            } catch (error: any) {
+                console.error('Error processing acknowledgment notification:', error.message);
+                toast.error(error.message || 'Failed to process acknowledgment notification', {
+                    style: {
+                        background: '#F5F7FA',
+                        color: '#37474F',
+                        border: '1px solid #D32F2F',
+                    },
+                });
             }
         };
 
         socket.on('connect_error', handleConnectError);
-        socket.on('vital:alert', handleVitalAlert);
         socket.on('vital:new', handleVitalNew);
         socket.on('notification:acknowledged', handleNotificationAcknowledged);
 
         return () => {
             socket.off('connect_error', handleConnectError);
-            socket.off('vital:alert', handleVitalAlert);
             socket.off('vital:new', handleVitalNew);
             socket.off('notification:acknowledged', handleNotificationAcknowledged);
         };
@@ -311,14 +243,8 @@ export const useNotifications = () => {
         }
 
         try {
-            const updatedNotification = await acknowledgeNotification(notificationId, session?.user?.accessToken as string);
-            setNotifications((prev) =>
-                prev.map((notif) =>
-                    notif._id === notificationId
-                        ? { ...updatedNotification, timestamp: new Date(updatedNotification.timestamp) }
-                        : notif
-                )
-            );
+            await acknowledgeNotification(notificationId, session?.user?.accessToken as string);
+            setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId));
             toast.success('Notification acknowledged', {
                 style: {
                     background: '#F5F7FA',

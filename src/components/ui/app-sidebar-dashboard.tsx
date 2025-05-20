@@ -27,6 +27,8 @@ import {
 import { MdHealthAndSafety } from "react-icons/md";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NavUser } from "../shared/nav-user";
+import { useNotifications } from "@/hooks/useNotification";
+import NotificationBell from "../Modules/Notifications/NotificationBell";
 // Navigation configs
 const patientNavLinks = [
     {
@@ -211,6 +213,7 @@ const adminNavLinks = [
 export function AppSidebar() {
     const isMobile = useIsMobile(); // 👈 mobile checker
     const [collapsed, setCollapsed] = useState(isMobile);
+    const { notifications, clearNotifications, acknowledgeNotification } = useNotifications();
 
     useEffect(() => {
         setCollapsed(isMobile);
@@ -237,6 +240,11 @@ export function AppSidebar() {
                     <Link href="/" className="font-bold text-2xl text-secondary">
                         Remote Health Monitoring
                     </Link>
+                    <NotificationBell
+                        notifications={notifications}
+                        clearNotifications={clearNotifications}
+                        acknowledgeNotification={acknowledgeNotification}
+                    />
                     {isMobile && (
                         <button
                             onClick={() => setCollapsed(!collapsed)}

@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { FieldValues } from "react-hook-form";
 
 export const PostVitals = async ({ data, token }: { data: FieldValues; token: string }) => {
+  console.log(data);
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_API}/vitals`, {
       method: "POST",
@@ -32,7 +33,6 @@ export const GetVitalsByUserId = async ({
   vitals: Vital[];
   vitamMeta: Meta;
 }> => {
-
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/${userId}?page=${page}`,

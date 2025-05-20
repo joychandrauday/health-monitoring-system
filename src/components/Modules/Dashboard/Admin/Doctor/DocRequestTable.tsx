@@ -32,7 +32,6 @@ interface Props {
 const DoctorRequestTable = ({ doctors, meta }: Props) => {
     const { data: session } = useSession();
     const token = session?.user?.accessToken;
-    console.log(token);
     const handleApproveDoc = async (userId: string) => {
         if (!token) {
             return Swal.fire("Something went wrong.");
@@ -50,7 +49,6 @@ const DoctorRequestTable = ({ doctors, meta }: Props) => {
         if (result.isConfirmed) {
             try {
                 const res = await approveDoctor(userId, token);
-                console.log(res);
                 if (res?.success) {
                     Swal.fire("Approved!", "Doctor has been approved.", "success");
                 } else {

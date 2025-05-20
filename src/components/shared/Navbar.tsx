@@ -9,7 +9,6 @@ type UserProps = {
   }
 }
 const Navbar = ({ session }: { session: UserProps | null }) => {
-  console.log(session);
   return (
     <NavbarDesign session={session} />
   );

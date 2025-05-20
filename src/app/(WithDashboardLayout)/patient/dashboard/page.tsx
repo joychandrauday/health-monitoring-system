@@ -17,7 +17,6 @@ export default async function UserDashboard() {
 
   try {
     const response = await getSingleProfile(session); // this should be server-safe
-    console.log(response);
     user = response;
   } catch (error) {
     console.error('Failed to fetch user profile:', error);
