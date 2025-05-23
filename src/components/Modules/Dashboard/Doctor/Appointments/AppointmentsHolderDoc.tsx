@@ -1,11 +1,10 @@
-
 import { getAppointmentsByUserId } from "@/service/Appointments";
 import { authOptions } from "@/utils/authOptions";
 import { getServerSession } from "next-auth";
 import AppointmentsTableDoc from "./AppointmentsTableDoc";
 
 interface AppointmentsHolderProps {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
+    searchParams: { [key: string]: string | undefined }; // ✅ Fixed here
 }
 
 const AppointmentsHolderDoc = async ({ searchParams }: AppointmentsHolderProps) => {
@@ -14,13 +13,11 @@ const AppointmentsHolderDoc = async ({ searchParams }: AppointmentsHolderProps) 
         return <h1 className="text-center text-2xl font-semibold text-gray-700">Log in to continue</h1>;
     }
 
-    // Await the entire searchParams object
-    const params = await searchParams;
-    const page = Number(params.page) || 1;
-    const status = params.status || undefined;
-    const type = params.type || undefined;
-    const startDate = params.startDate || undefined;
-    const endDate = params.endDate || undefined;
+    const page = Number(searchParams.page) || 1;
+    const status = searchParams.status || undefined;
+    const type = searchParams.type || undefined;
+    const startDate = searchParams.startDate || undefined;
+    const endDate = searchParams.endDate || undefined;
 
     const { appointments, meta } = await getAppointmentsByUserId({
         userId: session.user.id,
