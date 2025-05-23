@@ -3,8 +3,6 @@
 
 import { Meta } from "@/components/Modules/Dashboard/Admin/Doctor/DocRequestTable";
 import { User, Vital } from "@/types";
-import { authOptions } from "@/utils/authOptions";
-import { getServerSession } from "next-auth";
 import { FieldValues } from "react-hook-form";
 
 export const PostVitals = async ({ data, token }: { data: FieldValues; token: string }) => {
@@ -80,42 +78,39 @@ export const GetPatientsByDocId = async ({
     }
 
     const result = await res.json();
+
+    console.log(result);
     return {
-      patients: result?.data.patients || [],
+      patients: result?.data || [],
     };
   } catch (error: any) {
     throw new Error(error?.message || "Failed to fetch doctor requests");
   }
 };
 
-// get Users by Doctors
 export const GetSingleVital = async ({
-  userId,
-}: { userId: string; }): Promise<{
+  vitalId,
+  token
+}: { vitalId: string; token: string }): Promise<{
   vital: Vital;
 }> => {
-
-  const session = await getServerSession(authOptions);
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/single/${userId}`,
+      `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/single/${vitalId}`,
       {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${session?.user?.accessToken}`,
+          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
     );
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-
+    console.log(vitalId);
     const result = await res.json();
     return {
       vital: result || [],
     };
   } catch (error: any) {
-    throw new Error(error?.message || "Failed to fetch doctor requests");
+    throw new Error(error?.message || "Failed to fetch vital");
   }
 };

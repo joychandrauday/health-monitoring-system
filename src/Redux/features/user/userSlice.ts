@@ -25,7 +25,6 @@ const userSlice = createSlice({
         fetchUserSuccess: (state, action: { payload: User }) => {
             state.loading = false;
             state.user = action.payload;
-            console.log('Fetch User Success - User Data:', action.payload);
         },
         fetchUserFailure: (state, action: { payload: string }) => {
             state.loading = false;

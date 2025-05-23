@@ -2,17 +2,19 @@
 import { GetVitalsByUserId } from '@/service/VitalService';
 import { Vital } from '@/types';
 import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { Meta } from '../../Admin/Doctor/DocRequestTable';
 import TablePagination from '@/components/utils/TablePagination';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Link from 'next/link';
 
 const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
     const { data: session, status } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [vitalsHistory, setVitalsHistory] = useState<Vital[]>([]);
     const [vitalsMeta, setVitalsMeta] = useState<Meta>({
         total: 0,
@@ -91,14 +93,12 @@ const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
                                     <th className="p-4">Date</th>
+                                    <th className="p-4">Status</th>
                                     <th className="p-4">Heart Rate</th>
-                                    <th className="p-4">Blood Pressure</th>
                                     <th className="p-4">Glucose</th>
-                                    <th className="p-4">O2 Sat</th>
                                     <th className="p-4">Temp</th>
-                                    <th className="p-4">Resp Rate</th>
-                                    <th className="p-4">Pain</th>
                                     <th className="p-4">Injury</th>
+                                    <th className="p-4">Priority</th>
                                     <th className="p-4">Visuals</th>
                                 </tr>
                             </thead>
@@ -106,32 +106,30 @@ const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
                                 {vitalsHistory.map((vital) => (
                                     <tr
                                         key={vital._id}
-                                        className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-150"
+                                        className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-150 cursor-pointer"
                                         role="row"
                                     >
-                                        <td className="p-4 text-gray-600">
-                                            {vital.timestamp
-                                                ? new Date(vital.timestamp).toLocaleString('en-US', {
-                                                    dateStyle: 'medium',
-                                                    timeStyle: 'short',
-                                                })
-                                                : 'N/A'}
-                                        </td>
-
+                                        <Link href={`${pathname}/${vital._id}`} passHref legacyBehavior>
+                                            <td className="p-4 text-gray-600">
+                                                {vital.timestamp
+                                                    ? new Date(vital.timestamp).toLocaleString('en-US', {
+                                                        dateStyle: 'medium',
+                                                        timeStyle: 'short',
+                                                    })
+                                                    : 'N/A'}
+                                            </td>
+                                        </Link>
+                                        <td className="p-4 text-gray-600">{vital.status || '-'}</td>
                                         <td className="p-4 text-gray-600">{vital.heartRate ? `${vital.heartRate} bpm` : '-'}</td>
-                                        <td className="p-4 text-gray-600">
-                                            {vital.bloodPressure ? `${vital.bloodPressure.systolic}/${vital.bloodPressure.diastolic} mmHg` : '-'}
-                                        </td>
+
                                         <td className="p-4 text-gray-600">{vital.glucoseLevel ? `${vital.glucoseLevel} mg/dL` : '-'}</td>
-                                        <td className="p-4 text-gray-600">{vital.oxygenSaturation ? `${vital.oxygenSaturation}%` : '-'}</td>
                                         <td className="p-4 text-gray-600">{vital.temperature ? `${vital.temperature}°C` : '-'}</td>
-                                        <td className="p-4 text-gray-600">{vital.respiratoryRate ? `${vital.respiratoryRate}/min` : '-'}</td>
-                                        <td className="p-4 text-gray-600">{vital.painLevel ? `${vital.painLevel}/10` : '-'}</td>
                                         <td className="p-4 text-gray-600">
                                             {vital.injury && vital.injury.type !== 'none'
                                                 ? `${vital.injury.type} (${vital.injury.severity || 'N/A'}) ${vital.injury.description || ''}`
                                                 : '-'}
                                         </td>
+                                        <td className="p-4 text-gray-600">{vital.priority || '-'}</td>
                                         <td className="p-4">
                                             {vital.visuals && vital.visuals.length > 0 ? (
                                                 <div className="flex gap-2">

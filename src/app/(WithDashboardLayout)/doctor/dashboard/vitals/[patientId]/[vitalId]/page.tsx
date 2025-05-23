@@ -1,5 +1,7 @@
 import SingleVitals from '@/components/Modules/Dashboard/Doctor/Vitals/SingleVitals';
 import { GetSingleVital } from '@/service/VitalService';
+import { authOptions } from '@/utils/authOptions';
+import { getServerSession } from 'next-auth';
 import React from 'react';
 
 interface Props {
@@ -10,9 +12,13 @@ interface Props {
 }
 
 const DynamicVitalPage = async ({ params }: Props) => {
+    const session = await getServerSession(authOptions)
     const { vitalId } = await params;
     try {
-        const vital = await GetSingleVital({ userId: vitalId });
+        const vital = await GetSingleVital({
+            vitalId: vitalId,
+            token: session?.user?.accessToken as string
+        });
         if (!vital || !vital.vital) {
             return <div className="p-4">Vital data not found</div>;
         }

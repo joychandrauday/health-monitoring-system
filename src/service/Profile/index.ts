@@ -79,7 +79,7 @@ export const getGeneralProfile = async (
             throw new Error('No user data returned from API');
         }
 
-        return data;
+        return data.data;
     } catch (error: any) {
         console.error('Error fetching user:', error.message);
         throw new Error(error.message);

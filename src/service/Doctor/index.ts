@@ -84,7 +84,6 @@ export const GetAllDocsSocket = async ({
                 },
             }
         );
-
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }

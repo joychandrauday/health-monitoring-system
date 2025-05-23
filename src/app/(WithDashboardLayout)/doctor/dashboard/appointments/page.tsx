@@ -1,14 +1,15 @@
+import AppointmentsHolderDoc from "@/components/Modules/Dashboard/Doctor/Appointments/AppointmentsHolderDoc";
 
+interface PageProps {
+    searchParams: { [key: string]: string | undefined };
+}
 
-const Page = async () => {
-
+const Page = async ({ searchParams }: PageProps) => {
     return (
         <div>
-            <h1>
-                Appointment Page Doctor
-            </h1>
+            <AppointmentsHolderDoc searchParams={searchParams} />
         </div>
     );
-}
+};
 
 export default Page;

@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -28,7 +28,6 @@ import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import LoadingPage from '@/app/loading';
 
-
 export const GeneralProfile = () => {
     const [user, setUser] = useState<Partial<User>>({});
     const dispatch = useDispatch<AppDispatch>();
@@ -37,64 +36,35 @@ export const GeneralProfile = () => {
     const [formData, setFormData] = useState<Partial<User> | null>(null);
     const [completionPercentage, setCompletionPercentage] = useState(0);
     const { data: session, status } = useSession();
+
+    // Fetch user data on component mount
     useEffect(() => {
         const fetchUser = async () => {
-            const user = await getGeneralProfile(
-                session?.user?.id as string,
-                session?.user?.accessToken as string
-            )
-            setUser(user)
+            if (!session?.user?.id || !session?.user?.accessToken) {
+                const errorMessage = 'No valid session or access token';
+                dispatch(fetchUserFailure(errorMessage));
+                toast.error(errorMessage);
+                return;
+            }
+
+            dispatch(fetchUserRequest({ userId: session.user.id }));
+            try {
+                const userData = await getGeneralProfile(session.user.id, session.user.accessToken);
+                setUser(userData);
+                dispatch(fetchUserSuccess(userData));
+            } catch (error: any) {
+                const errorMessage = error.message || 'Failed to fetch user';
+                dispatch(fetchUserFailure(errorMessage));
+                toast.error(errorMessage);
+            }
+        };
+
+        if (status === 'authenticated') {
+            fetchUser();
         }
-        fetchUser()
-    }, []);
+    }, [status, session, dispatch]);
 
-    const initializeUserData = async () => {
-        if (!session?.user?.accessToken) {
-            const errorMessage = 'No valid session or access token';
-            dispatch(fetchUserFailure(errorMessage));
-            toast.error(errorMessage);
-            return;
-        }
-
-        dispatch(fetchUserRequest({ userId: user._id as string }));
-        try {
-            const response = await getGeneralProfile(user._id as string, session.user.accessToken);
-            dispatch(fetchUserSuccess(response));
-        } catch (error: any) {
-            const errorMessage = error.message || 'Failed to fetch user';
-            dispatch(fetchUserFailure(errorMessage));
-            toast.error(errorMessage);
-        }
-    };
-
-    useEffect(() => {
-        if (!reduxUser && user._id && session?.user?.accessToken) {
-            initializeUserData();
-        }
-    }, [reduxUser, user._id, session]);
-
-    const calculateCompletion = (data: Partial<User>) => {
-        const fields = [
-            data.name,
-            data.email,
-            data.bio,
-            data.avatar,
-            data.gender,
-            data.bloodGroup,
-            data.age && data.age > 0,
-            data.phone,
-            data.address?.street,
-            data.address?.city,
-            data.address?.state,
-            data.address?.country,
-            data.address?.postalCode,
-        ];
-        const filledFields = fields.filter(Boolean).length;
-        const totalFields = fields.length;
-        const percentage = Math.round((filledFields / totalFields) * 100);
-        setCompletionPercentage(percentage);
-    };
-
+    // Update formData and completion percentage when reduxUser changes
     useEffect(() => {
         if (reduxUser) {
             const newFormData = {
@@ -118,6 +88,28 @@ export const GeneralProfile = () => {
             calculateCompletion(newFormData);
         }
     }, [reduxUser]);
+
+    const calculateCompletion = (data: Partial<User>) => {
+        const fields = [
+            data.name,
+            data.email,
+            data.bio,
+            data.avatar,
+            data.gender,
+            data.bloodGroup,
+            data.age && data.age > 0,
+            data.phone,
+            data.address?.street,
+            data.address?.city,
+            data.address?.state,
+            data.address?.country,
+            data.address?.postalCode,
+        ];
+        const filledFields = fields.filter(Boolean).length;
+        const totalFields = fields.length;
+        const percentage = Math.round((filledFields / totalFields) * 100);
+        setCompletionPercentage(percentage);
+    };
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -145,7 +137,6 @@ export const GeneralProfile = () => {
             return;
         }
 
-        // Prepare data to send (exclude non-editable fields like _id, role, etc.)
         const updateData: Partial<User> = {
             name: formData.name,
             email: formData.email,
@@ -201,7 +192,6 @@ export const GeneralProfile = () => {
         }
     };
 
-    // Determine image source for avatar
     const getAvatarSrc = () => {
         if (formData?.avatar && formData.avatar !== 'none' && formData.avatar.startsWith('http')) {
             return formData.avatar;
@@ -212,10 +202,10 @@ export const GeneralProfile = () => {
         if (formData?.gender === 'female') {
             return femaleAvatar.src;
         }
-        return '/avatar_male.png'; // Fallback default avatar
+        return '/avatar_male.png';
     };
 
-    if (status === 'loading' || loading || !session?.user?.accessToken) {
+    if (status === 'loading' || loading) {
         return <LoadingPage />;
     }
 
@@ -223,7 +213,21 @@ export const GeneralProfile = () => {
         return (
             <div className="text-center text-gray-600">
                 <p>{error || 'No user data available.'}</p>
-                <Button variant="outline" onClick={initializeUserData}>
+                <Button variant="outline" onClick={() => {
+                    if (status === 'authenticated' && session?.user?.id && session?.user?.accessToken) {
+                        dispatch(fetchUserRequest({ userId: session.user.id }));
+                        getGeneralProfile(session.user.id, session.user.accessToken)
+                            .then((userData) => {
+                                setUser(userData);
+                                dispatch(fetchUserSuccess(userData));
+                            })
+                            .catch((error: any) => {
+                                const errorMessage = error.message || 'Failed to fetch user';
+                                dispatch(fetchUserFailure(errorMessage));
+                                toast.error(errorMessage);
+                            });
+                    }
+                }}>
                     Try Again
                 </Button>
             </div>
@@ -304,7 +308,7 @@ export const GeneralProfile = () => {
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Avatar URL</label>
+                        <label className="block text-sm font-medium text-gray-700">Avatar</label>
                         {isEditing ? (
                             <Input
                                 value={formData.avatar || ''}
@@ -313,7 +317,17 @@ export const GeneralProfile = () => {
                                 placeholder="https://example.com/avatar.jpg"
                             />
                         ) : (
-                            <p className="mt-1 text-gray-900">{formData.avatar || 'Not set'}</p>
+                            <Image
+                                src={getAvatarSrc()}
+                                alt={formData.name || 'User'}
+                                width={128}
+                                height={128}
+                                className="object-cover rounded-full"
+                                priority={true}
+                                sizes="(max-width: 640px) 96px, 128px"
+                                placeholder="blur"
+                                blurDataURL="/default-avatar.png"
+                            />
                         )}
                     </div>
                     <div>

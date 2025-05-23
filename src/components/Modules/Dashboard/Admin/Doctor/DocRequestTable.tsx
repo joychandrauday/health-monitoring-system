@@ -7,7 +7,15 @@ import { approveDoctor } from "@/service/Doctor";
 import Swal from "sweetalert2";
 import { CheckCircle2 } from "lucide-react"; // ✅ icon import
 import { useSession } from "next-auth/react";
+import { User } from "@/types";
 
+export interface Review {
+    user: string | User;
+    content: string;
+    ratings: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
 export interface Doctor {
     _id: string;
     email: string;
@@ -15,6 +23,18 @@ export interface Doctor {
     role: string;
     doctorRequest: boolean;
     createdAt: string;
+    phone: string;
+    major?: string;
+    qualifications?: string[];
+    experience?: number; // in years
+    bio?: string;
+    availableDays?: string[]; // e.g., ['Monday', 'Wednesday']
+    availableTime?: {
+        from?: string; // e.g., "09:00"
+        to?: string;   // e.g., "17:00"
+    };
+    reviews?: Review[];
+    averageRating?: number; // 👈 Optional: because initially no rating
 }
 
 export interface Meta {

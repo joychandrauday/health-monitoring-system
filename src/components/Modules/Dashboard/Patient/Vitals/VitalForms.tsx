@@ -187,7 +187,7 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
 
             // Submit vitals via API
             const responseData = await PostVitals({ data: payload, token: session?.user?.accessToken as string });
-
+            console.log(responseData);
             // Emit Socket.io event
             socket?.emit('vital:submit', {
                 patientId: userId,

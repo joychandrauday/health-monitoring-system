@@ -37,7 +37,7 @@ const NotificationCard = ({ notification, acknowledgeNotification }: Notificatio
 
     return (
         <li
-            className={`relative p-4 rounded-xl shadow flex gap-4 bg-white border transition-all duration-300 hover:shadow-lg ${notification.acknowledged
+            className={`relative p-4 rounded-xl my-2 shadow flex gap-4 bg-white border transition-all duration-300 hover:shadow-lg ${notification.acknowledged
                 ? 'border-gray-200 opacity-80'
                 : 'border-secondary'
                 }`}
@@ -66,7 +66,12 @@ const NotificationCard = ({ notification, acknowledgeNotification }: Notificatio
 
             {/* Content */}
             <div className="flex-1 space-y-1">
-                <div className="text-sm text-gray-500">Patient</div>
+                <div className="text-sm text-gray-500">
+                    {typeof notification.sender === 'object' && 'role' in notification.sender
+                        ? notification.sender.role
+                        : 'Unknown'}
+                </div>
+
                 <div className="font-semibold text-gray-800">{name}</div>
                 <div className="text-gray-700 text-sm">{notification.message}</div>
 

@@ -7,16 +7,18 @@ import { useSession } from 'next-auth/react';
 import useSocket from '@/hooks/useSocket';
 import { FaCheckCircle } from 'react-icons/fa';
 
-interface VitalAlert {
-    sender: string;
-    vitalId: string;
-    message: string;
-    vital: Vital;
-}
-
 interface VitalNotification {
     sender: string;
     vitalId: string;
+    vital: Vital;
+    message?: string;
+    notification: IMedicalNotification;
+}
+
+interface FeedbackNotification {
+    sender: string;
+    vitalId: string;
+    message: string;
     vital: Vital;
     notification: IMedicalNotification;
 }
@@ -38,10 +40,6 @@ export const useNotifications = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             if (!session?.user?.id || !session?.user?.accessToken) {
-                console.log('Cannot fetch notifications: Missing session data', {
-                    userId: session?.user?.id,
-                    accessToken: session?.user?.accessToken ? 'Present' : 'Missing',
-                });
                 setIsLoading(false);
                 return;
             }
@@ -52,7 +50,7 @@ export const useNotifications = () => {
                     userId: session.user.id as string,
                     token: session.user.accessToken as string,
                 });
-                console.log('Raw fetched notifications:', fetchedNotifications);
+
                 setNotifications(fetchedNotifications);
             } catch (error: any) {
                 console.error('Error fetching notifications:', error.message, error);
@@ -83,9 +81,22 @@ export const useNotifications = () => {
             return;
         }
 
-        console.log('Setting up socket listeners for user:', session?.user?.id);
-        socket.emit('joinRoom', { userId: session?.user?.id as string });
-        console.log(`Joined room: user:${session?.user?.id as string}`);
+        // Join appropriate rooms based on user role
+        const userId = session?.user?.id as string;
+        const userRole = session?.user?.role; // Assuming session includes role (e.g., 'patient' or 'doctor')
+        const rooms = [];
+        if (userRole === 'patient') {
+            rooms.push(`patient:${userId}`);
+        } else if (userRole === 'doctor') {
+            rooms.push(`doctor:${userId}`);
+        }
+        // Also join user:${userId} for compatibility with other events
+        rooms.push(`user:${userId}`);
+
+        rooms.forEach((room) => {
+            socket.emit('joinRoom', { room });
+            console.log(`Joined room: ${room}`);
+        });
 
         const handleConnectError = (error: Error) => {
             console.error('Socket connection error:', error.message);
@@ -101,14 +112,13 @@ export const useNotifications = () => {
 
         const handleVitalNew = (data: VitalNotification) => {
             if (!data.vital || data.vital.doctorId !== session?.user?.id) {
-                console.error('Invalid or irrelevant vital notification data:', data);
+                console.log('Ignoring vital:new (not relevant to this user):', data);
                 return;
             }
-            console.log('Received vital:new:', data);
 
             const { notification } = data;
 
-            // Check for critical conditions (for UI purposes only, no new notification)
+            // Check for critical conditions (for UI purposes only)
             let message = notification.message;
             let isCritical = false;
 
@@ -130,6 +140,7 @@ export const useNotifications = () => {
             toast.success(
                 <div>
                     <strong>{isCritical ? 'Critical Vitals Submitted' : 'New Vitals Submitted'} (Sender ID: {data.sender})</strong>
+                    <p>{message}</p>
                     <ul className="list-disc pl-4 mt-1">
                         {data.vital.heartRate && <li>Heart Rate: {data.vital.heartRate} bpm</li>}
                         {data.vital.bloodPressure && (
@@ -149,8 +160,35 @@ export const useNotifications = () => {
             );
         };
 
-        const handleNotificationAcknowledged = async (data: AcknowledgmentNotification) => {
-            console.log('Received notification:acknowledged:', data);
+        const handleVitalFeedback = (data: FeedbackNotification) => {
+
+            const { notification, message } = data;
+
+            // Update notifications state
+            setNotifications((prev) => [
+                { ...notification, acknowledged: false, timestamp: new Date(notification.timestamp) },
+                ...prev.filter((notif) => notif._id !== notification._id),
+            ].slice(0, 20));
+
+            // Show toast
+            toast.success(
+                <div>
+                    <strong>Vital Feedback Received (Sender ID: {data.sender})</strong>
+                    <p>{message}</p>
+                </div>,
+                {
+                    duration: 6000,
+                    style: {
+                        background: '#F5F7FA',
+                        color: '#37474F',
+                        border: '1px solid #2E7D32',
+                        maxWidth: '500px',
+                    },
+                }
+            );
+        };
+
+        const handleNotificationAcknowledged = (data: AcknowledgmentNotification) => {
 
             try {
                 // Add the new acknowledgment notification to the state
@@ -162,7 +200,6 @@ export const useNotifications = () => {
                     newNotification,
                     ...prev.filter((notif) => notif._id !== newNotification._id),
                 ].slice(0, 20));
-                console.log('Added acknowledgment notification:', newNotification);
 
                 toast.success(data.message, {
                     duration: 5000,
@@ -187,14 +224,16 @@ export const useNotifications = () => {
 
         socket.on('connect_error', handleConnectError);
         socket.on('vital:new', handleVitalNew);
+        socket.on('vital:feedback', handleVitalFeedback);
         socket.on('notification:acknowledged', handleNotificationAcknowledged);
 
         return () => {
             socket.off('connect_error', handleConnectError);
             socket.off('vital:new', handleVitalNew);
+            socket.off('vital:feedback', handleVitalFeedback);
             socket.off('notification:acknowledged', handleNotificationAcknowledged);
         };
-    }, [socket, isConnected, session?.user?.id, session?.user?.accessToken]);
+    }, [socket, isConnected, session?.user?.id, session?.user?.accessToken, session?.user?.role]);
 
     const clearNotificationsHandler = async () => {
         if (!session?.user?.accessToken) {

@@ -52,7 +52,7 @@ const TablePagination = ({ totalPage }: { totalPage: number }) => {
       >
         <ArrowLeft size={18} />
       </Button>
-      
+
       {/* Page Numbers */}
       {renderPageNumbers().map((page, index) => (
         <Button
@@ -66,7 +66,7 @@ const TablePagination = ({ totalPage }: { totalPage: number }) => {
           variant={currentPage === page ? "default" : "outline"}
           size="sm"
           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all 
-                      ${currentPage === page ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+          ${currentPage === page ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
         >
           {page}
         </Button>

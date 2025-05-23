@@ -6,7 +6,6 @@ export const saveNotification = async (
     token: string
 ): Promise<IMedicalNotification> => {
     try {
-        console.log('Saving notification:', notification);
         const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_API}/notifications`, {
             method: 'POST',
             headers: {
@@ -18,7 +17,6 @@ export const saveNotification = async (
                 timestamp: notification.timestamp.toISOString(),
             }),
         });
-        console.log('Save notification response:', response);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to save notification');
@@ -39,7 +37,6 @@ export const saveNotification = async (
 
 export const getNotifications = async ({ token, userId }: { token: string; userId: string }): Promise<IMedicalNotification[]> => {
     try {
-        console.log('Fetching notifications for user:', userId);
         const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_API}/notifications/user/${userId}`, {
             method: 'GET',
             headers: {
@@ -47,14 +44,13 @@ export const getNotifications = async ({ token, userId }: { token: string; userI
                 'Content-Type': 'application/json',
             },
         });
-        console.log('Get notifications response:', response);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to fetch notifications');
         }
 
         const data = await response.json();
-        return data.data.map((notif: any) => ({
+        return data.data.notifications.map((notif: any) => ({
             ...notif,
             timestamp: new Date(notif.timestamp),
             patientId: notif.patientId?._id || notif.patientId,
@@ -71,7 +67,6 @@ export const acknowledgeNotification = async (
     token: string
 ): Promise<IMedicalNotification> => {
     try {
-        console.log('Acknowledging notification:', notificationId);
         const response = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/notifications/${notificationId}/acknowledge`,
             {
@@ -82,7 +77,6 @@ export const acknowledgeNotification = async (
                 },
             }
         );
-        console.log('Acknowledge notification response:', response);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to acknowledge notification');
@@ -103,7 +97,6 @@ export const acknowledgeNotification = async (
 
 export const clearNotifications = async (token: string): Promise<void> => {
     try {
-        console.log('Clearing notifications');
         const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_API}/notifications`, {
             method: 'DELETE',
             headers: {
@@ -116,7 +109,6 @@ export const clearNotifications = async (token: string): Promise<void> => {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to clear notifications');
         }
-        console.log('Notifications cleared successfully');
     } catch (error: any) {
         console.error('Error in clearNotifications:', error);
         throw new Error(error.message || 'Failed to clear notifications');
