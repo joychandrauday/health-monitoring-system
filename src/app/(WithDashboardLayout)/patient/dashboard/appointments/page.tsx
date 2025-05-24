@@ -1,13 +1,14 @@
 import AppointmentsHolder from "@/components/Modules/Dashboard/Patient/Appointments/AppointmentsHolder";
 
 interface PageProps {
-    searchParams: { [key: string]: string | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 const Page = async ({ searchParams }: PageProps) => {
+    const resolvedSearchParams = await searchParams;
     return (
         <div>
-            <AppointmentsHolder searchParams={searchParams} />
+            <AppointmentsHolder searchParams={resolvedSearchParams} />
         </div>
     );
 };

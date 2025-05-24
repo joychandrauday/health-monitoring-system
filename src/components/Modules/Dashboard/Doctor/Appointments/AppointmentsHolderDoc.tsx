@@ -3,8 +3,9 @@ import { authOptions } from "@/utils/authOptions";
 import { getServerSession } from "next-auth";
 import AppointmentsTableDoc from "./AppointmentsTableDoc";
 
+// Define the props interface for AppointmentsHolderDoc
 interface AppointmentsHolderProps {
-    searchParams: { [key: string]: string | undefined }; // ✅ Fixed here
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
 const AppointmentsHolderDoc = async ({ searchParams }: AppointmentsHolderProps) => {
@@ -14,10 +15,10 @@ const AppointmentsHolderDoc = async ({ searchParams }: AppointmentsHolderProps) 
     }
 
     const page = Number(searchParams.page) || 1;
-    const status = searchParams.status || undefined;
-    const type = searchParams.type || undefined;
-    const startDate = searchParams.startDate || undefined;
-    const endDate = searchParams.endDate || undefined;
+    const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
+    const type = typeof searchParams.type === 'string' ? searchParams.type : undefined;
+    const startDate = typeof searchParams.startDate === 'string' ? searchParams.startDate : undefined;
+    const endDate = typeof searchParams.endDate === 'string' ? searchParams.endDate : undefined;
 
     const { appointments, meta } = await getAppointmentsByUserId({
         userId: session.user.id,

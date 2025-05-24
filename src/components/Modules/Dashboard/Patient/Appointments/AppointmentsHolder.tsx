@@ -1,10 +1,11 @@
+// src/components/Modules/Dashboard/Patient/Appointments/AppointmentsHolder.tsx
 import AppointmentsTable from "./AppointmentsTable";
 import { getAppointmentsByUserId } from "@/service/Appointments";
 import { authOptions } from "@/utils/authOptions";
 import { getServerSession } from "next-auth";
 
 interface AppointmentsHolderProps {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
 const AppointmentsHolder = async ({ searchParams }: AppointmentsHolderProps) => {
@@ -13,13 +14,11 @@ const AppointmentsHolder = async ({ searchParams }: AppointmentsHolderProps) => 
         return <h1 className="text-center text-2xl font-semibold text-gray-700">Log in to continue</h1>;
     }
 
-    // Await the entire searchParams object
-    const params = await searchParams;
-    const page = Number(params.page) || 1;
-    const status = params.status || undefined;
-    const type = params.type || undefined;
-    const startDate = params.startDate || undefined;
-    const endDate = params.endDate || undefined;
+    const page = Number(searchParams.page) || 1;
+    const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
+    const type = typeof searchParams.type === 'string' ? searchParams.type : undefined;
+    const startDate = typeof searchParams.startDate === 'string' ? searchParams.startDate : undefined;
+    const endDate = typeof searchParams.endDate === 'string' ? searchParams.endDate : undefined;
 
     const { appointments, meta } = await getAppointmentsByUserId({
         userId: session.user.id,

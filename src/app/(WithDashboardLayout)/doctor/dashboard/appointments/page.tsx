@@ -1,13 +1,18 @@
+// src/app/(WithDashboardLayout)/doctor/dashboard/appointments/page.tsx
 import AppointmentsHolderDoc from "@/components/Modules/Dashboard/Doctor/Appointments/AppointmentsHolderDoc";
 
 interface PageProps {
-    searchParams: { [key: string]: string | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export const Page = async ({ searchParams }: PageProps) => {
+const Page = async ({ searchParams }: PageProps) => {
+    const resolvedSearchParams = await searchParams;
+
     return (
         <div>
-            <AppointmentsHolderDoc searchParams={searchParams} />
+            <AppointmentsHolderDoc searchParams={resolvedSearchParams} />
         </div>
     );
 };
+
+export default Page;
