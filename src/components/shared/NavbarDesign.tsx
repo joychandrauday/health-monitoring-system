@@ -166,7 +166,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
         <div className="flex items-center gap-3">
           <Link href="/" aria-label="Remote Health Monitoring System Home">
             <Image
-              src="https://res.cloudinary.com/dklikxmpm/image/upload/v1748054375/telemiconwhite_dbpbmr.png"
+              src="https://res.cloudinary.com/dklikxmpm/image/upload/v1748054376/image_fjiqey.png"
               width={48}
               height={48}
               alt="Remote Health Monitoring System Logo"
