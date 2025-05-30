@@ -45,7 +45,7 @@ export interface Review {
 
 export interface IDoctor {
     _id?: string;
-    user: User;
+    user: User | string;
     major: string;
     qualifications: string[];
     experience: number; // in years
@@ -57,6 +57,7 @@ export interface IDoctor {
     };
     reviews: Review[];
     averageRating?: number; // 👈 Optional: because initially no rating
+    isOnline?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -142,4 +143,21 @@ export interface IAppointment extends Document {
     notes?: string;
     createdAt: Date;
     updatedAt: Date;
+}
+
+
+export interface ChatMessage {
+    _id?: string;
+    senderId: { _id: string; name: string };
+    receiverId: string;
+    message: string;
+    imageUrls?: string[];
+    timestamp: string;
+}
+
+export interface ChatMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
 }

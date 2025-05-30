@@ -24,7 +24,6 @@ interface FormData {
     reason: string;
     vital: string;
     notes?: string;
-
 }
 
 const BookAppointment: React.FC<{ token: string }> = ({ token }) => {
@@ -56,7 +55,6 @@ const BookAppointment: React.FC<{ token: string }> = ({ token }) => {
         if (session?.user?.id) {
             setFormData((prev) => ({ ...prev, patientId: session?.user?.id as string }));
         }
-
         const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
         const fetchVitals = async () => {
             try {
@@ -194,7 +192,6 @@ const BookAppointment: React.FC<{ token: string }> = ({ token }) => {
                     {success && (
                         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md text-sm">{success}</div>
                     )}
-
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="flex gap-4 justify-between items-center">
                             <div className="w-full">
@@ -211,8 +208,11 @@ const BookAppointment: React.FC<{ token: string }> = ({ token }) => {
                                     </SelectTrigger>
                                     <SelectContent className="bg-white">
                                         {allDoctors.map((doctor) => (
-                                            <SelectItem key={doctor._id} value={doctor.user._id as string}>
-                                                {doctor.user.name}
+                                            <SelectItem
+                                                key={doctor._id}
+                                                value={typeof doctor.user === 'string' ? doctor.user : doctor.user._id}
+                                            >
+                                                {typeof doctor.user === 'string' ? doctor.user : doctor.user.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

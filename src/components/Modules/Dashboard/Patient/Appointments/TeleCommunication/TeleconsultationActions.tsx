@@ -1,18 +1,36 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
+import { ChatPopup } from "@/components/utils/ChatPopup";
 import { MessageSquare, Video } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { IAppointment } from "@/types";
 
-export const TeleconsultationActions: React.FC<{ appointmentId: string }> = ({ appointmentId }) => {
+export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = ({ appointment }) => {
+    const { data: session } = useSession();
+    const [isChatOpen, setIsChatOpen] = useState(false);
+
     const handleJoinCall = () => {
         alert('Joining video call... (Placeholder for video call integration)');
-        console.log(appointmentId);
     };
 
     const handleOpenChat = () => {
-        alert('Opening chat... (Placeholder for chat integration)');
-        // Integrate with your chat service here
+        setIsChatOpen(true);
     };
+
+    const handleCloseChat = () => {
+        setIsChatOpen(false);
+    };
+
+    // 🧠 Determine doctorId and name safely
+    const doctorId = typeof appointment.doctorId === 'string'
+        ? appointment.doctorId
+        : appointment.doctorId._id;
+
+    const doctorName = typeof appointment.doctorId === 'string'
+        ? 'Doctor'
+        : appointment.doctorId.name || 'Doctor';
 
     return (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -32,9 +50,20 @@ export const TeleconsultationActions: React.FC<{ appointmentId: string }> = ({ a
                     onClick={handleOpenChat}
                 >
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    Open Chat
+                    Chat
                 </Button>
             </div>
+
+            {isChatOpen && (
+                <ChatPopup
+                    userId={session?.user?.id as string}
+                    doctorId={doctorId}
+                    doctorName={doctorName}
+                    isOpen={isChatOpen}
+                    onClose={handleCloseChat}
+                    className="z-50"
+                />
+            )}
         </div>
     );
 };

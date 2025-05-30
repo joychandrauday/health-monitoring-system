@@ -5,15 +5,24 @@ import { getServerSession } from "next-auth";
 
 // get all products
 export const getAllUsers = async (
+    token: string,
     limit?: string,
     query?: string
 ) => {
     try {
 
         const res = await fetch(
-            `${process.env.NEXT_PUBLIC_SERVER_API}/users?limit=${limit}&${query}`
+            `${process.env.NEXT_PUBLIC_SERVER_API}/users?limit=${limit}&${query}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            }
         );
+        console.log(res);
         const data = await res.json();
+        console.log(data);
         return data;
     } catch (error: any) {
         return Error(error.message);
