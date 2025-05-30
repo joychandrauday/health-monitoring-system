@@ -65,34 +65,44 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
     const messageIds = useRef<Set<string>>(new Set());
     const hasFetchedConversations = useRef(false);
 
+    // Centralized validation function for session and token
+    const isSessionValid = useCallback((): boolean => {
+        const isValid = session?.user && typeof session.user.accessToken === 'string' && session.user.accessToken.length > 0;
+        if (!isValid) {
+            console.warn('Session validation failed:', {
+                hasUser: !!session?.user,
+                hasToken: !!session?.user?.accessToken,
+                tokenLength: session?.user?.accessToken?.length || 0,
+            });
+            setError('Invalid session or access token');
+        }
+        return isValid as boolean;
+    }, [session]);
+
     useEffect(() => {
-        if (!socket || !session?.user?.role || !Types.ObjectId.isValid(userId)) {
-            console.warn('Socket, role, or userId invalid:', {
+        if (!socket || !isSessionValid() || !Types.ObjectId.isValid(userId)) {
+            console.warn('Initial setup failed:', {
                 socket: !!socket,
-                role: session?.user?.role,
-                userId,
+                sessionValid: isSessionValid(),
+                userIdValid: Types.ObjectId.isValid(userId),
             });
             return;
         }
 
-        console.log('Setting up WebSocket listeners for user:', userId);
+        // console.log('Setting up WebSocket listeners for user:', userId);
         socket.on('connect', () => console.log('WebSocket connected'));
         socket.on('disconnect', () => console.log('WebSocket disconnected'));
 
-        const role = session.user.role;
+        const role = session?.user?.role;
         if (role === 'doctor') {
-            console.log('Joining doctor room:', `doctor:${userId}`);
             socket.emit('joinDoctorRoom', { doctorId: userId });
         } else if (role === 'patient') {
-            console.log('Joining patient room:', `patient:${userId}`);
             socket.emit('joinPatientRoom', { patientId: userId });
         } else if (role === 'admin') {
-            console.log('Joining admin room:', `admin:${userId}`);
             socket.emit('joinAdminRoom', { adminId: userId });
         }
 
         socket.on('message', (message: ChatMessage) => {
-            console.log('WebSocket message received:', message);
             if (!message._id || messageIds.current.has(message._id)) {
                 console.warn('Message ignored:', {
                     hasId: !!message._id,
@@ -125,7 +135,6 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
             messageIds.current.add(message._id);
 
             setConversations((prev) => {
-                console.log('Updating conversation for:', { senderId, receiverId, userId });
                 const targetUserId = senderId === userId ? receiverId : senderId;
                 const existingConv = prev.find((conv) => conv.userId === targetUserId);
                 let updatedConversations: Conversation[];
@@ -158,13 +167,11 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                     const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : -1;
                     return timeB - timeA;
                 });
-                console.log('Updated conversations:', sortedConversations);
                 return sortedConversations;
             });
         });
 
         socket.on('userStatus', ({ onlineUsers, offlineUsers }: { onlineUsers: OnlineUser[]; offlineUsers: OnlineUser[] }) => {
-            console.log('User status updated:', { onlineUsers, offlineUsers });
             setOnlineUsers(onlineUsers);
             setOfflineUsers(offlineUsers);
             setConversations((prev) => {
@@ -181,17 +188,15 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
         });
 
         return () => {
-            console.log('Cleaning up WebSocket listeners');
             socket.off('connect');
             socket.off('disconnect');
             socket.off('message');
             socket.off('userStatus');
         };
-    }, [socket, userId, session?.user?.role]);
+    }, [socket, userId, isSessionValid]);
 
     const isOnline = useCallback(
         (checkUserId: string): boolean => {
-            console.log('Checking online status for user:', checkUserId);
             return onlineUsers.some((user) => user.id === checkUserId);
         },
         [onlineUsers]
@@ -199,15 +204,20 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
 
     const sendMessage = useCallback(
         async (receiverId: string, content: string) => {
+            if (!isSessionValid()) {
+                console.error('Cannot send message: Invalid session or access token');
+                setError('Cannot send message: Invalid session or access token');
+                return;
+            }
             if (!socket) {
                 console.error('Socket not connected');
                 setError('Socket not connected');
-                throw new Error('Socket not connected');
+                return;
             }
             if (!Types.ObjectId.isValid(receiverId)) {
                 console.error('Invalid receiverId:', receiverId);
                 setError(`Invalid receiverId: ${receiverId}`);
-                throw new Error('Invalid receiverId');
+                return;
             }
 
             setIsLoading(true);
@@ -219,15 +229,13 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
             };
 
             try {
-                console.log('Sending message:', message);
-                const response = await sendMessages(message, session?.user?.accessToken || '');
-                console.log('Server response:', response);
+                const response = await sendMessages(message, session!.user!.accessToken);
 
                 if (response._id && !messageIds.current.has(response._id)) {
                     const newMessage: ChatMessage = {
                         ...message,
                         _id: response._id,
-                        senderId: { _id: userId, name: session?.user?.name || 'Unknown' } as Sender,
+                        senderId: { _id: userId, name: session!.user!.name || 'Unknown' } as Sender,
                         timestamp: response.createdAt || response.timestamp || new Date().toISOString(),
                     };
                     setMessages((prev) => {
@@ -237,7 +245,6 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                         );
                     });
                     messageIds.current.add(response._id);
-                    console.log('Emitting message via socket:', newMessage);
                     socket.emit('message', { receiverId, message: newMessage });
                     setConversations((prev) => {
                         const existingConv = prev.find((conv) => conv.userId === receiverId);
@@ -285,11 +292,16 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                 setIsLoading(false);
             }
         },
-        [socket, userId, session?.user?.accessToken, session?.user?.name]
+        [socket, userId, isSessionValid, session?.user?.name]
     );
 
     const fetchChatHistory = useCallback(
         async (receiverId: string, page = 1, limit = 10) => {
+            if (!isSessionValid()) {
+                console.error('Cannot fetch chat history: Invalid session or access token');
+                setError('Cannot fetch chat history: Invalid session or access token');
+                return;
+            }
             if (!Types.ObjectId.isValid(receiverId)) {
                 console.error('Invalid receiverId for fetchChatHistory:', receiverId);
                 setError(`Invalid receiverId: ${receiverId}`);
@@ -303,11 +315,10 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
             setIsLoading(true);
             setError(null);
             try {
-                console.log('Fetching chat history with:', { userId, receiverId, page, limit });
                 const { chats, meta } = await getMessage(
                     userId,
                     receiverId,
-                    session?.user?.accessToken || '',
+                    session!.user!.accessToken,
                     page,
                     limit
                 );
@@ -324,7 +335,6 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                     );
                 });
                 setMeta(meta);
-                console.log('Chat history fetched:', { chats: newMessages, meta });
             } catch (err) {
                 console.error('Error fetching chat history:', err);
                 setError(err instanceof Error ? err.message : 'Failed to fetch chat history');
@@ -334,24 +344,27 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                 setIsLoading(false);
             }
         },
-        [userId, session?.user?.accessToken]
+        [userId, isSessionValid]
     );
 
     const fetchConversations = useCallback(async () => {
-        if (!userId || !session?.user?.accessToken || !Types.ObjectId.isValid(userId)) {
-            console.warn('User ID or access token invalid:', { userId, hasToken: !!session?.user?.accessToken });
+        if (!isSessionValid()) {
+            console.error('Cannot fetch conversations: Invalid session or access token');
+            setError('Cannot fetch conversations: Invalid session or access token');
+            return;
+        }
+        if (!Types.ObjectId.isValid(userId)) {
+            console.error('Invalid userId for fetchConversations:', userId);
+            setError(`Invalid userId: ${userId}`);
             return;
         }
         if (hasFetchedConversations.current) {
-            console.log('Skipping fetchConversations, already fetched');
             return;
         }
         setIsLoading(true);
         setError(null);
         try {
-            console.log('Fetching conversations for user:', userId);
-            const { senders } = await getUniqueSenders(userId, session.user.accessToken, 1, 10);
-            console.log('Fetched senders:', senders);
+            const { senders } = await getUniqueSenders(userId, session!.user!.accessToken, 1, 10);
             const invalidSenders = senders.filter((sender: SenderResponse) => !sender.userId || !Types.ObjectId.isValid(sender.userId));
             if (invalidSenders.length > 0) {
                 console.warn('Invalid sender userIds detected:', invalidSenders);
@@ -373,7 +386,6 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
                 });
             setConversations(newConversations);
             hasFetchedConversations.current = true;
-            console.log('Conversations set:', newConversations);
         } catch (err) {
             console.error('Error fetching conversations:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
@@ -381,11 +393,11 @@ export const useMessages = (userId: string, socket: Socket | null | undefined): 
         } finally {
             setIsLoading(false);
         }
-    }, [userId, session?.user?.accessToken, onlineUsers]);
+    }, [userId, isSessionValid, onlineUsers]);
 
     const logout = useCallback(() => {
         if (socket) {
-            console.log('Logging out and disconnecting socket');
+            // console.log('Logging out and disconnecting socket');
             socket.emit('logout');
             socket.disconnect();
         }

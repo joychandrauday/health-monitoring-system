@@ -57,8 +57,8 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
             {isChatOpen && (
                 <ChatPopup
                     userId={session?.user?.id as string}
-                    doctorId={doctorId}
-                    doctorName={doctorName}
+                    selectedUserId={doctorId}
+                    selectedUserName={doctorName}
                     isOpen={isChatOpen}
                     onClose={handleCloseChat}
                     className="z-50"

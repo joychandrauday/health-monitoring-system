@@ -10,10 +10,6 @@ import { useNotifications } from '@/hooks/useNotification';
 const DoctorDashboard = () => {
   const { data: session, status } = useSession();
   const { notifications, isLoading, clearNotifications, acknowledgeNotification } = useNotifications();
-
-  console.log('Session:', session);
-  console.log('Notifications:', notifications);
-
   if (status === 'loading' || isLoading) {
     return <LoadingPage />;
   }

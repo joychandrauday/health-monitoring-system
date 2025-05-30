@@ -35,7 +35,6 @@ const FeedbackSection = ({ initialPrescriptions, initialLabTests, initialRecomme
     const handleRecommendationsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         await addRecommendationOnVital(vitalId, recommendations, session?.user?.accessToken as string)
-        console.log('Recommendations Updated:', recommendations);
         toast.success('Recommedation added!!')
     };
 

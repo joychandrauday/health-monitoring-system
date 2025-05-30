@@ -84,7 +84,6 @@ const SingleVitalPatient = ({ vital }: SingleVitalPatientProps) => {
     const patientName = patient?.name || (typeof vital.patientId === 'string' ? `ID: ${vital.patientId}` : 'Unknown');
     const patientEmail = patient?.email || '-';
     const patientAvatar = patient?.avatar || '/default-avatar.png';
-    console.log(vital);
 
     return (
         <div className="container mx-auto p-6 max-w-7xl overflow-x-hidden">

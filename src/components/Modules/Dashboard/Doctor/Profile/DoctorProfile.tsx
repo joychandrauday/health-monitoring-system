@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
@@ -23,6 +24,7 @@ import { UpdateDoctor } from '@/service/Profile';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 
 interface DoctorProfileProps {
     doctorId: string;
@@ -36,22 +38,23 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
     const [formData, setFormData] = useState<IDoctor | null>(null);
     const [completionPercentage, setCompletionPercentage] = useState(0);
     const { data: session } = useSession();
-
-    console.log('DoctorProfile - Received props:', { doctorId, doctorFromDb });
+    const { uploadImage, imageUrl, isUploading, error: uploadError } = useCloudinaryUpload();
 
     // Initialize doctor data
     const initializeDoctorData = () => {
-        console.log('Initializing doctor data with doctorFromDb:', doctorFromDb);
         dispatch(fetchDoctorRequest({ doctorId }));
         try {
-            if (!doctorFromDb) {
-                throw new Error('No doctor data provided');
+            if (!doctorFromDb || !doctorId) {
+                throw new Error('Invalid doctor data or ID');
             }
             dispatch(fetchDoctorSuccess(doctorFromDb));
+            setFormData(doctorFromDb);
+            calculateCompletion(doctorFromDb);
         } catch (error: any) {
             const errorMessage = error.message || 'Failed to initialize doctor data';
             console.error('Initialize Doctor Error:', errorMessage);
             dispatch(fetchDoctorFailure(errorMessage));
+            toast.error(errorMessage);
         }
     };
 
@@ -59,18 +62,29 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
         if (!doctor && doctorId && doctorFromDb) {
             initializeDoctorData();
         }
-    }, []);
+    }, [doctorId, doctorFromDb]);
 
+    // Update formData when doctor or imageUrl changes
     useEffect(() => {
         if (doctor) {
-            setFormData(doctor);
-            calculateCompletion(doctor);
+            const updatedFormData = {
+                ...doctor,
+                user:
+                    typeof doctor.user === 'object' && doctor.user
+                        ? { ...doctor.user, avatar: imageUrl || doctor.user.avatar || '' }
+                        : doctor.user,
+            };
+            setFormData(updatedFormData);
+            calculateCompletion(updatedFormData);
         }
-    }, [doctor]);
+    }, [doctor, imageUrl]);
 
+    // Handle upload errors
     useEffect(() => {
-        console.log('Doctor State:', { doctor, loading, error });
-    }, [doctor, loading, error]);
+        if (uploadError) {
+            toast.error(uploadError);
+        }
+    }, [uploadError]);
 
     const calculateCompletion = (data: IDoctor) => {
         const fields = [
@@ -81,12 +95,14 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
             data.availableDays?.length > 0,
             data.availableTime?.from,
             data.availableTime?.to,
+            typeof data.user === 'object' && data.user?.name,
+            typeof data.user === 'object' && data.user?.email,
+            typeof data.user === 'object' && data.user?.avatar,
         ];
         const filledFields = fields.filter(Boolean).length;
         const totalFields = fields.length;
         const percentage = Math.round((filledFields / totalFields) * 100);
         setCompletionPercentage(percentage);
-        console.log('Profile Completion:', { filledFields, totalFields, percentage });
     };
 
     const handleChange = (
@@ -97,17 +113,56 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
     ) => {
         if (!formData) return;
 
+        let updatedFormData: IDoctor;
         if (field === 'qualifications' && index !== undefined) {
             const updatedQualifications = [...formData.qualifications];
             updatedQualifications[index] = e.target.value;
-            setFormData({ ...formData, qualifications: updatedQualifications });
+            updatedFormData = { ...formData, qualifications: updatedQualifications };
         } else if (subfield && field === 'availableTime') {
-            setFormData({
+            updatedFormData = {
                 ...formData,
                 [field]: { ...formData[field], [subfield]: e.target.value },
-            });
+            };
+        } else if (field === 'user' && subfield && typeof formData.user === 'object') {
+            updatedFormData = {
+                ...formData,
+                user: { ...formData.user, [subfield]: e.target.value },
+            };
         } else {
-            setFormData({ ...formData, [field]: e.target.value });
+            updatedFormData = { ...formData, [field]: e.target.value };
+        }
+        setFormData(updatedFormData);
+        calculateCompletion(updatedFormData);
+    };
+
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+            toast.error('Please select a valid image file (JPEG, PNG, or GIF)');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image size must be less than 5MB');
+            return;
+        }
+
+        try {
+            const url = await uploadImage(file);
+            setFormData((prev) =>
+                prev && typeof prev.user === 'object'
+                    ? { ...prev, user: { ...prev.user, avatar: url } }
+                    : prev
+            );
+            calculateCompletion({
+                ...formData!,
+                user: typeof formData!.user === 'object' ? { ...formData!.user, avatar: url } : formData!.user,
+            });
+            toast.success('Image uploaded successfully');
+        } catch (err) {
+            // Error handled by useCloudinaryUpload
         }
     };
 
@@ -136,15 +191,19 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
     };
 
     const handleSave = async () => {
-        if (!formData || !doctorId) {
-            toast.error('No data to save or invalid doctor ID');
-            console.error('Handle Save Error:', { formData, doctorId });
+        if (!formData || !doctorId || !session?.user?.accessToken) {
+            toast.error('No data to save, invalid doctor ID, or missing access token');
+            console.error('Handle Save Error:', {
+                formData,
+                doctorId,
+                accessToken: !!session?.user?.accessToken,
+            });
+            dispatch(updateDoctorFailure('Invalid data or session'));
             return;
         }
         dispatch(updateDoctorRequest());
         try {
-            const response = await UpdateDoctor(doctorId, formData, session?.user?.accessToken as string);
-            console.log('Update API Response:', response.data);
+            const response = await UpdateDoctor(doctorId, formData, session.user.accessToken);
             dispatch(updateDoctorSuccess(response.data));
             setIsEditing(false);
             toast.success('Profile updated successfully!');
@@ -159,7 +218,17 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
 
     const toggleEdit = () => {
         setIsEditing(!isEditing);
-        if (isEditing && doctor) setFormData(doctor);
+        if (isEditing && doctor) {
+            setFormData(doctor);
+            calculateCompletion(doctor);
+        }
+    };
+
+    const getAvatarSrc = () => {
+        if (typeof formData?.user === 'object' && formData.user?.avatar && formData.user.avatar.startsWith('http')) {
+            return formData.user.avatar;
+        }
+        return '/avatar_male.png';
     };
 
     if (loading) {
@@ -183,12 +252,8 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
         return (
             <div className="w-[90%] mx-auto min-h-[50vh] flex items-center justify-center">
                 <div className="text-center text-gray-600">
-                    <p>{error ? `Error: ${error}` : 'No doctor data available.'}</p>
-                    <Button
-                        variant="outline"
-                        className="mt-4"
-                        onClick={initializeDoctorData}
-                    >
+                    <p>{error || 'No doctor data available.'}</p>
+                    <Button variant="outline" className="mt-4" onClick={initializeDoctorData}>
                         Try Again
                     </Button>
                 </div>
@@ -201,7 +266,9 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
             <Card className="max-w-2xl mx-auto shadow-lg border-none bg-white/90 backdrop-blur-sm">
                 <CardHeader className="relative">
                     <CardTitle className="text-2xl font-bold text-gray-800">
-                        {formData.user.name}&apos;s Profile
+                        {typeof formData.user === 'object' && formData.user?.name
+                            ? formData.user.name
+                            : 'Doctor Profile'}
                     </CardTitle>
                     <div className="absolute top-4 right-4">
                         <Progress value={completionPercentage} className="w-24" />
@@ -216,12 +283,78 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
                         </Badge>
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Avatar</label>
+                        {isEditing ? (
+                            <div className="mt-1">
+                                <Input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif"
+                                    onChange={handleImageChange}
+                                    className="mb-2"
+                                    disabled={isUploading}
+                                />
+                                {isUploading && <p className="text-sm text-gray-600">Uploading...</p>}
+                                {typeof formData.user === 'object' && formData.user?.avatar && (
+                                    <Image
+                                        src={formData.user.avatar}
+                                        alt="Avatar Preview"
+                                        width={64}
+                                        height={64}
+                                        className="object-cover rounded-full mt-2"
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <Image
+                                src={getAvatarSrc()}
+                                alt={
+                                    typeof formData.user === 'object' && formData.user?.name
+                                        ? formData.user.name
+                                        : 'Doctor'
+                                }
+                                width={64}
+                                height={64}
+                                className="object-cover rounded-full mt-1"
+                                priority
+                                sizes="(max-width: 640px) 48px, 64px"
+                                placeholder="blur"
+                                blurDataURL="/default-avatar.png"
+                            />
+                        )}
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700">Name</label>
-                        <p className="mt-1 text-gray-900">{formData.user.name}</p>
+                        {isEditing && typeof formData.user === 'object' ? (
+                            <Input
+                                value={formData.user.name || ''}
+                                onChange={(e) => handleChange(e, 'user', 'name')}
+                                className="mt-1"
+                                placeholder="Doctor Name"
+                            />
+                        ) : (
+                            <p className="mt-1 text-gray-900">
+                                {typeof formData.user === 'object' && formData.user?.name
+                                    ? formData.user.name
+                                    : 'Not specified'}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <p className="mt-1 text-gray-900">{formData.user.email}</p>
+                        {isEditing && typeof formData.user === 'object' ? (
+                            <Input
+                                value={formData.user.email || ''}
+                                onChange={(e) => handleChange(e, 'user', 'email')}
+                                className="mt-1"
+                                placeholder="doctor@example.com"
+                            />
+                        ) : (
+                            <p className="mt-1 text-gray-900">
+                                {typeof formData.user === 'object' && formData.user?.email
+                                    ? formData.user.email
+                                    : 'Not specified'}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Major</label>
@@ -257,12 +390,7 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
                                         </Button>
                                     </div>
                                 ))}
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={addQualification}
-                                    className="mt-2"
-                                >
+                                <Button variant="outline" size="sm" onClick={addQualification} className="mt-2">
                                     Add Qualification
                                 </Button>
                             </div>
@@ -366,7 +494,9 @@ const DoctorProfile: React.FC<DoctorProfileProps> = ({ doctorId, doctorFromDb })
                                 <Button variant="outline" onClick={toggleEdit}>
                                     Cancel
                                 </Button>
-                                <Button onClick={handleSave}>Save</Button>
+                                <Button onClick={handleSave} disabled={isUploading}>
+                                    Save
+                                </Button>
                             </>
                         ) : (
                             <Button onClick={toggleEdit}>Edit Profile</Button>

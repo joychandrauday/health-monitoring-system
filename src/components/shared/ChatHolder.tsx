@@ -19,7 +19,6 @@ const ChatHolder = () => {
 
     useEffect(() => {
         if (userId && Types.ObjectId.isValid(userId)) {
-            console.log('Fetching conversations for userId:', userId);
             fetchConversations();
         } else {
             console.warn('Invalid or missing userId:', userId);
@@ -28,14 +27,12 @@ const ChatHolder = () => {
 
     const handleSelectUser = useCallback(
         (selectedUserId: string, selectedUserName: string) => {
-            console.log('handleSelectUser called with:', { selectedUserId, selectedUserName });
             if (!Types.ObjectId.isValid(selectedUserId)) {
                 console.error('Invalid selectedUserId:', selectedUserId);
                 return;
             }
             setSelectedUser({ id: selectedUserId, name: selectedUserName });
             setShowChat(true);
-            console.log('Set selectedUser:', { id: selectedUserId, name: selectedUserName }, 'showChat:', true);
         },
         []
     );
@@ -98,7 +95,6 @@ const ChatHolder = () => {
                         onClose={() => {
                             setShowChat(false);
                             setSelectedUser(null);
-                            console.log('Closed ChatPopup, reset selectedUser and showChat');
                         }}
                         className="z-50"
                     />

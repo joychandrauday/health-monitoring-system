@@ -20,9 +20,7 @@ export const getAllUsers = async (
                 },
             }
         );
-        console.log(res);
         const data = await res.json();
-        console.log(data);
         return data;
     } catch (error: any) {
         return Error(error.message);

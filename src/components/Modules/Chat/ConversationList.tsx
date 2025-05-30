@@ -21,7 +21,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     onSelectUser,
     isLoading
 }) => {
-    console.log('ConversationList conversations:', conversations);
 
     return (
         <div className="w-full min-h-[60vh] mx-auto bg-white rounded-lg shadow">

@@ -23,9 +23,6 @@ export const AddMedicine = async (
     token: string
 ): Promise<any> => {
     try {
-        // Optional: Log input
-        console.log("Sending medicine data:", medData);
-
         const payload = {
             data: medData, // ✅ wrap with `data`
         };
@@ -48,7 +45,6 @@ export const AddMedicine = async (
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating medicine:", error.message);
@@ -68,7 +64,6 @@ export const UpdateMedicine = async (
             },
             update: medData, // ✅ wrap with `data`
         };
-        console.log("Sending medicine data:", payload);
 
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/${vitalId}/prescriptions/update`,
@@ -88,7 +83,6 @@ export const UpdateMedicine = async (
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating medicine:", error.message);
@@ -108,7 +102,6 @@ export const DeleteMedicine = async (
             },
 
         };
-        console.log("Sending medicine data:", payload);
 
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/${vitalId}/prescriptions/delete`,
@@ -128,7 +121,6 @@ export const DeleteMedicine = async (
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating medicine:", error.message);
@@ -142,9 +134,6 @@ export const AddLabTest = async (
     token: string
 ): Promise<any> => {
     try {
-        // Optional: Log input
-        console.log("Sending LabTest data:", medData);
-
         const payload = {
             data: medData, // ✅ wrap with `data`
         };
@@ -160,14 +149,12 @@ export const AddLabTest = async (
                 body: JSON.stringify(payload),
             }
         );
-        console.log(res);
         if (!res.ok) {
             const error = await res.json();
             throw new Error(error.message || "Failed to update prescription");
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating LabTest:", error.message);
@@ -187,7 +174,6 @@ export const UpdateLabTest = async (
             },
             update: medData, // ✅ wrap with `data`
         };
-        console.log("Sending LabTest data:", payload);
 
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/${vitalId}/labtests/update`,
@@ -207,7 +193,6 @@ export const UpdateLabTest = async (
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating LabTest:", error.message);
@@ -227,8 +212,6 @@ export const DeleteLabTest = async (
             },
 
         };
-        console.log("Sending medicine data:", payload);
-
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/vitals/${vitalId}/labtests/delete`,
             {
@@ -240,14 +223,12 @@ export const DeleteLabTest = async (
                 body: JSON.stringify(payload),
             }
         );
-        console.log(res, 'heloooooooooooooooooooooooooooooo');
         if (!res.ok) {
             const error = await res.json();
             throw new Error(error.message || "Failed to update prescription");
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating medicine:", error.message);
@@ -281,7 +262,6 @@ export const addRecommendationOnVital = async (
         }
 
         const updatedVital = await res.json();
-        console.log("Updated vital:", updatedVital);
         return updatedVital;
     } catch (error: any) {
         console.error("Error updating medicine:", error.message);

@@ -83,11 +83,19 @@ const DoctorTable = ({ doctors, docsMeta }: Props) => {
                             <TableCell>
                                 {(docsMeta.page - 1) * docsMeta.limit + index + 1}
                             </TableCell>
-                            <TableCell>{doc.user.name}</TableCell>
-                            <TableCell>{doc.user.email}</TableCell>
-                            <TableCell>{doc.user.role}</TableCell>
                             <TableCell>
-                                {new Date(doc.user.createdAt).toLocaleDateString()}
+                                {typeof doc.user === "object" && "name" in doc.user ? doc.user.name : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                                {typeof doc.user === "object" && "email" in doc.user ? doc.user.email : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                                {typeof doc.user === "object" && "role" in doc.user ? doc.user.role : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                                {typeof doc.user === "object" && "createdAt" in doc.user
+                                    ? new Date(doc.user.createdAt as unknown as string).toLocaleDateString()
+                                    : "N/A"}
                             </TableCell>
                             <TableCell>
                                 <Button
@@ -100,6 +108,7 @@ const DoctorTable = ({ doctors, docsMeta }: Props) => {
                                 </Button>
                             </TableCell>
                         </TableRow>
+
                     ))}
                 </TableBody>
             </Table>

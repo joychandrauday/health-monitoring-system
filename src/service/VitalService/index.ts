@@ -105,7 +105,6 @@ export const GetSingleVital = async ({
         },
       }
     );
-    console.log(vitalId);
     const result = await res.json();
     return {
       vital: result || [],

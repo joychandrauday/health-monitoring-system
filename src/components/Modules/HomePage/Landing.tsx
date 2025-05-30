@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Monitor, Lock, Calendar, MessageSquare, UserPlus, Heart, StethoscopeIcon, File } from 'lucide-react';
 import BannerSlider from './BannerSlider';
@@ -10,21 +9,12 @@ import ServiceCard from './ServiceCard';
 import { Accordion, AccordionContent } from '@radix-ui/react-accordion';
 import { AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { TextHoverEffect } from '@/components/ui/text-hover-effect';
-
-const testimonials = [
-    {
-        name: 'Sarah Johnson',
-        role: 'Patient',
-        quote: 'This system has made managing my health so easy. The real-time monitoring and doctor consultations are game-changers!',
-        image: 'https://res.cloudinary.com/dklikxmpm/image/upload/v1748054376/testimonial1.jpg',
-    },
-    {
-        name: 'Dr. Michael Lee',
-        role: 'Physician',
-        quote: 'The platform’s insights help me provide better care to my patients remotely. It’s intuitive and reliable.',
-        image: 'https://res.cloudinary.com/dklikxmpm/image/upload/v1748054376/testimonial2.jpg',
-    },
-];
+import DocSectionHome from './DocSection/DocSectionHome';
+import { IDoctor } from '@/types';
+import TestimonialsSection from './TestimonialSection';
+interface LandingProps {
+    doctors: IDoctor[];
+}
 
 const features = [
     { title: 'Real-Time Monitoring', description: 'Track vitals instantly with advanced sensors.', icon: Monitor },
@@ -51,7 +41,7 @@ const faqs = [
     { question: 'Is the system easy to use?', answer: 'Our intuitive interface is designed for users of all ages.' },
 ];
 
-const Landing: React.FC = () => {
+const Landing: React.FC<LandingProps> = ({ doctors }) => {
     const fadeIn = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -69,7 +59,7 @@ const Landing: React.FC = () => {
             </section>
 
             {/* How It Works Section */}
-            <section className="py-12 md:py-16 bg-gray-50">
+            <section className="flex items-center justify-center min-h-screen  bg-gray-50">
                 <div className="container mx-auto px-4 sm:px-6 md:px-8">
                     <motion.h2
                         className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 text-center"
@@ -196,49 +186,46 @@ const Landing: React.FC = () => {
                 </div>
             </section> */}
 
-            {/* Testimonials Section */}
-            <section className="py-12 md:py-16 bg-gray-50">
-                <div className="container mx-auto px-4 sm:px-6 md:px-8">
+            <TestimonialsSection />
+
+            <DocSectionHome doctors={doctors} />
+            {/* Call-to-Action Section */}
+            <section className="bg-primary py-12 md:py-16">
+                <div className="container mx-auto px-4 sm:px-6 md:px-8 text-center">
                     <motion.h2
-                        className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 text-center"
+                        className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white"
                         variants={fadeIn}
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
                     >
-                        What Our Users Say
+                        Start Your Healthcare Journey Today
                     </motion.h2>
-                    <motion.div
-                        className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6"
-                        variants={stagger}
+                    <motion.p
+                        className="mt-4 text-sm sm:text-base md:text-lg text-teal-100 max-w-xl mx-auto"
+                        variants={fadeIn}
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
                     >
-                        {testimonials.map((testimonial, index) => (
-                            <motion.div
-                                key={index}
-                                className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center"
-                                variants={fadeIn}
-                            >
-                                <div className="relative w-16 h-16 mb-4">
-                                    <Image
-                                        src={testimonial.image}
-                                        alt={testimonial.name}
-                                        fill
-                                        className="rounded-full object-cover"
-                                        priority={index === 0}
-                                    />
-                                </div>
-                                <p className="text-sm text-gray-600 italic">&quot;{testimonial.quote}&quot;</p>
-                                <h3 className="mt-4 text-lg font-medium text-gray-800">{testimonial.name}</h3>
-                                <p className="text-sm text-gray-500">{testimonial.role}</p>
-                            </motion.div>
-                        ))}
+                        Join thousands of users who trust our platform for their health needs.
+                    </motion.p>
+                    <motion.div
+                        variants={fadeIn}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                    >
+                        <Link
+                            href="/register"
+                            className="mt-6 inline-block px-6 sm:px-8 py-2 sm:py-3 bg-white text-primary text-sm sm:text-base font-medium rounded-full hover:bg-gray-100 transition-colors duration-200"
+                            aria-label="Sign Up Now"
+                        >
+                            Sign Up Now
+                        </Link>
                     </motion.div>
                 </div>
             </section>
-
             <section className="py-12 md:py-16">
                 <div className="container mx-auto px-4 sm:px-6 md:px-8">
                     <motion.h2
@@ -277,45 +264,6 @@ const Landing: React.FC = () => {
                     </motion.div>
                 </div>
             </section>
-
-            {/* Call-to-Action Section */}
-            <section className="bg-teal-600 py-12 md:py-16">
-                <div className="container mx-auto px-4 sm:px-6 md:px-8 text-center">
-                    <motion.h2
-                        className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white"
-                        variants={fadeIn}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                    >
-                        Start Your Healthcare Journey Today
-                    </motion.h2>
-                    <motion.p
-                        className="mt-4 text-sm sm:text-base md:text-lg text-teal-100 max-w-xl mx-auto"
-                        variants={fadeIn}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                    >
-                        Join thousands of users who trust our platform for their health needs.
-                    </motion.p>
-                    <motion.div
-                        variants={fadeIn}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                    >
-                        <Link
-                            href="/register"
-                            className="mt-6 inline-block px-6 sm:px-8 py-2 sm:py-3 bg-white text-teal-600 text-sm sm:text-base font-medium rounded-md hover:bg-gray-100 transition-colors duration-200"
-                            aria-label="Sign Up Now"
-                        >
-                            Sign Up Now
-                        </Link>
-                    </motion.div>
-                </div>
-            </section>
-
         </div >
     );
 };

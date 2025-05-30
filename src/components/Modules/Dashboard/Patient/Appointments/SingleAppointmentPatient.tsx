@@ -13,7 +13,6 @@ interface SingleAppointmentPatientProps {
 }
 const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ appointment, token }) => {
     const router = useRouter();
-    console.log(appointment);
     const handlePayment = async () => {
         try {
             alert('Processing payment... (Placeholder for payment gateway)');

@@ -21,7 +21,7 @@ const services = [
             'Schedule virtual consultations with top doctors from the comfort of your home. Enjoy flexible, secure, and convenient healthcare access.',
         icon: Video,
         image: 'https://res.cloudinary.com/dklikxmpm/image/upload/v1748287841/pexels-karolina-grabowska-7195084_kqe7g5.jpg',
-        link: '/appointment',
+        link: '/register',
         cta: 'Book Now',
     },
     {
@@ -46,9 +46,9 @@ const services = [
 
 const Services: React.FC = () => {
     return (
-        <div className="w-full bg-white pt-16 md:pt-20">
+        <div className="w-full bg-white pt-16 md:pt-0">
             {/* Header Section */}
-            <section className="bg-gray-50 py-12 md:py-16">
+            <section className=" py-12 md:py-12">
                 <div className="container mx-auto px-4 sm:px-6 md:px-8 text-center">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-800">
                         Our Services
@@ -102,7 +102,7 @@ const Services: React.FC = () => {
             </section>
 
             {/* Call-to-Action Section */}
-            <section className="bg-teal-600 py-12 md:py-16">
+            <section className="bg-primary py-12 md:py-16">
                 <div className="container mx-auto px-4 sm:px-6 md:px-8 text-center">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white">
                         Ready to Transform Your Healthcare Experience?
@@ -112,7 +112,7 @@ const Services: React.FC = () => {
                     </p>
                     <Link
                         href="/register"
-                        className="mt-6 inline-block px-6 sm:px-8 py-2 sm:py-3 bg-white text-teal-600 text-sm sm:text-base font-medium rounded-md hover:bg-gray-100 transition-colors duration-200"
+                        className="mt-6 inline-block px-6 sm:px-8 py-2 sm:py-3 bg-white text-primary text-sm sm:text-base font-medium rounded-full hover:bg-gray-100 transition-colors duration-200"
                         aria-label="Get Started Now"
                     >
                         Get Started Now

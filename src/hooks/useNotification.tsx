@@ -72,12 +72,12 @@ export const useNotifications = () => {
     // Socket setup
     useEffect(() => {
         if (!socket || !isConnected || !session?.user?.id || !session?.user?.accessToken) {
-            console.log('Socket not ready for notifications:', {
-                socket: !!socket,
-                isConnected,
-                userId: session?.user?.id,
-                accessToken: session?.user?.accessToken ? 'Present' : 'Missing',
-            });
+            // console.log('Socket not ready for notifications:', {
+            //     socket: !!socket,
+            //     isConnected,
+            //     userId: session?.user?.id,
+            //     accessToken: session?.user?.accessToken ? 'Present' : 'Missing',
+            // });
             return;
         }
 
@@ -95,7 +95,7 @@ export const useNotifications = () => {
 
         rooms.forEach((room) => {
             socket.emit('joinRoom', { room });
-            console.log(`Joined room: ${room}`);
+            // console.log(`Joined room: ${room}`);
         });
 
         const handleConnectError = (error: Error) => {
@@ -112,7 +112,6 @@ export const useNotifications = () => {
 
         const handleVitalNew = (data: VitalNotification) => {
             if (!data.vital || data.vital.doctorId !== session?.user?.id) {
-                console.log('Ignoring vital:new (not relevant to this user):', data);
                 return;
             }
 
