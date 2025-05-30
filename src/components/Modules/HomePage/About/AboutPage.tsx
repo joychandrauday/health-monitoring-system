@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 const About: React.FC = () => {
@@ -64,53 +63,6 @@ const About: React.FC = () => {
                 </div>
             </section>
 
-            {/* Team Section */}
-            <section className="bg-gray-50 py-12 md:py-16">
-                <div className="container mx-auto px-4 sm:px-6 md:px-8">
-                    <motion.h2
-                        className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 text-center"
-                        variants={fadeIn}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                    >
-                        Meet Our Team
-                    </motion.h2>
-                    <motion.div
-                        className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                        variants={stagger}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                    >
-                        {[
-                            { name: 'Dr. Jane Doe', role: 'Chief Medical Officer', image: '/avatar_male.png' },
-                            { name: 'John Smith', role: 'Lead Developer', image: '/avatar_male.png' },
-                            { name: 'Emily Brown', role: 'Patient Care Manager', image: '/avatar_female.png' },
-                        ].map((member, index) => (
-                            <motion.div
-                                key={index}
-                                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
-                                variants={fadeIn}
-                            >
-                                <div className="relative w-full h-48">
-                                    <Image
-                                        src={member.image}
-                                        alt={member.name}
-                                        fill
-                                        className="object-cover"
-                                        priority={index === 0}
-                                    />
-                                </div>
-                                <div className="p-4 text-center">
-                                    <h3 className="text-lg font-medium text-gray-800">{member.name}</h3>
-                                    <p className="text-sm text-gray-600">{member.role}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
-            </section>
         </div>
     );
 };

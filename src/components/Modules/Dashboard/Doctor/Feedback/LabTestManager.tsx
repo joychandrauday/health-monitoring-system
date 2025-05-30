@@ -117,8 +117,7 @@ const LabTestManager = ({ initialLabTests, vitalId }: LabTestManagerProps) => {
         if (deleteIndex !== null) {
             const updatedLabTests = labTests.filter((_, i) => i !== deleteIndex);
             setLabTests(updatedLabTests);
-            const res = await DeleteLabTest(vitalId, testName, session?.user?.accessToken as string)
-            console.log(res);
+            await DeleteLabTest(vitalId, testName, session?.user?.accessToken as string)
             toast.success('Lab Test Deleted successfully!!');
         }
         setIsDeleteConfirmOpen(false);

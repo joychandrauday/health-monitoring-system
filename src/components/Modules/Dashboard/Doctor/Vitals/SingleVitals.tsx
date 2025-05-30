@@ -11,8 +11,7 @@ interface SingleVitalsProps {
 
 const SingleVitals = ({ vital }: SingleVitalsProps) => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    if (!vital.success) {
-        console.log('helooooooooooooooooooo');
+    if (!vital) {
         return <div className="p-4">Vital data not found</div>;
     }
 

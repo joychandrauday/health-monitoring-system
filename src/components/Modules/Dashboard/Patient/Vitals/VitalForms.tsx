@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -9,6 +10,7 @@ import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { PostVitals } from '@/service/VitalService';
 import { Socket } from 'socket.io-client';
+import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 
 interface FormData {
     heartRate: string;
@@ -22,7 +24,7 @@ interface FormData {
     injuryType: string;
     injuryDescription: string;
     injurySeverity: string;
-    visuals: string[];
+    visuals: string[]; // URLs from Cloudinary
 }
 
 export interface VitalsFormProps {
@@ -53,6 +55,9 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [loading, setLoading] = useState(false);
 
+    // Use Cloudinary upload hook
+    const { uploadImage, isUploading, error: uploadError } = useCloudinaryUpload();
+
     // Handle form input changes
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -64,15 +69,23 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            const filePromises = Array.from(files).map((file) => {
-                return new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.readAsDataURL(file);
+            setLoading(true);
+            try {
+                const uploadPromises = Array.from(files).map(async (file) => {
+                    const url = await uploadImage(file); // Use Cloudinary upload
+                    return url;
                 });
-            });
-            const base64Images = await Promise.all(filePromises);
-            setFormData((prev) => ({ ...prev, visuals: [...prev.visuals, ...base64Images] }));
+                const uploadedUrls = await Promise.all(uploadPromises);
+                setFormData((prev) => ({
+                    ...prev,
+                    visuals: [...prev.visuals, ...uploadedUrls],
+                }));
+                toast.success('Images uploaded successfully!');
+            } catch (err) {
+                toast.error(`Failed to upload images: ${uploadError || 'Unknown error'}`);
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -182,12 +195,11 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
                     severity: formData.injurySeverity || undefined,
                 };
             }
-            if (formData.visuals.length > 0) payload.visuals = formData.visuals;
+            if (formData.visuals.length > 0) payload.visuals = formData.visuals; // Now contains Cloudinary URLs
             if (selectedDoctorId) payload.doctorId = selectedDoctorId;
 
             // Submit vitals via API
             const responseData = await PostVitals({ data: payload, token: session?.user?.accessToken as string });
-            console.log(responseData);
             // Emit Socket.io event
             socket?.emit('vital:submit', {
                 patientId: userId,
@@ -398,7 +410,15 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
                         accept="image/*"
                         onChange={handleFileChange}
                         className="mt-1 w-full p-2 border rounded-md focus:ring-sky-blue border-light-gray"
+                        disabled={isUploading} // Disable input during upload
                     />
+                    {isUploading && (
+                        <div className="flex items-center mt-2">
+                            <FaSpinner className="animate-spin mr-2" />
+                            <span>Uploading images...</span>
+                        </div>
+                    )}
+                    {uploadError && <p className="text-vital-red text-sm mt-1">{uploadError}</p>}
                     {formData.visuals.length > 0 && (
                         <div className="mt-2 flex gap-2 flex-wrap">
                             {formData.visuals.map((visual, index) => (
@@ -435,10 +455,10 @@ const VitalsForm = ({ userId, selectedDoctorId, socket, onSubmitSuccess, onCance
                 </button>
                 <button
                     type="submit"
-                    disabled={loading}
-                    className={`px-4 py-2 bg-primary text-white rounded-md hover:bg-sky-blue focus:ring-2 focus:ring-sky-blue flex items-center ${loading ? 'cursor-not-allowed' : ''}`}
+                    disabled={loading || isUploading}
+                    className={`px-4 py-2 bg-primary text-white rounded-md hover:bg-sky-blue focus:ring-2 focus:ring-sky-blue flex items-center ${loading || isUploading ? 'cursor-not-allowed' : ''}`}
                 >
-                    {loading ? (
+                    {loading || isUploading ? (
                         <>
                             <FaSpinner className="animate-spin mr-2" />
                             Submitting...

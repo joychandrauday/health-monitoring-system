@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -27,6 +27,7 @@ import { getGeneralProfile, UpdateGeneralProfile } from '@/service/Profile';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import LoadingPage from '@/app/loading';
+import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 
 export const GeneralProfile = () => {
     const [user, setUser] = useState<Partial<User>>({});
@@ -36,6 +37,7 @@ export const GeneralProfile = () => {
     const [formData, setFormData] = useState<Partial<User> | null>(null);
     const [completionPercentage, setCompletionPercentage] = useState(0);
     const { data: session, status } = useSession();
+    const { uploadImage, imageUrl, isUploading, error: uploadError } = useCloudinaryUpload(); // Use the upload hook
 
     // Fetch user data on component mount
     useEffect(() => {
@@ -64,14 +66,14 @@ export const GeneralProfile = () => {
         }
     }, [status, session, dispatch]);
 
-    // Update formData and completion percentage when reduxUser changes
+    // Update formData and completion percentage when reduxUser or imageUrl changes
     useEffect(() => {
         if (reduxUser) {
             const newFormData = {
                 name: reduxUser.name || '',
                 email: reduxUser.email || '',
                 bio: reduxUser.bio || '',
-                avatar: reduxUser.avatar || '',
+                avatar: imageUrl || reduxUser.avatar || '', // Use uploaded imageUrl if available
                 gender: reduxUser.gender || '',
                 bloodGroup: reduxUser.bloodGroup || '',
                 age: reduxUser.age || 0,
@@ -87,7 +89,14 @@ export const GeneralProfile = () => {
             setFormData(newFormData);
             calculateCompletion(newFormData);
         }
-    }, [reduxUser]);
+    }, [reduxUser, imageUrl]); // Add imageUrl to dependencies
+
+    // Handle upload errors
+    useEffect(() => {
+        if (uploadError) {
+            toast.error(uploadError);
+        }
+    }, [uploadError]);
 
     const calculateCompletion = (data: Partial<User>) => {
         const fields = [
@@ -128,6 +137,31 @@ export const GeneralProfile = () => {
         }
         setFormData(updatedFormData);
         calculateCompletion(updatedFormData);
+    };
+
+    // Handle image file selection and upload
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+            toast.error('Please select a valid image file (JPEG, PNG, or GIF)');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) { // Limit to 5MB
+            toast.error('Image size must be less than 5MB');
+            return;
+        }
+
+        try {
+            const url = await uploadImage(file);
+            setFormData((prev) => (prev ? { ...prev, avatar: url } : prev));
+            calculateCompletion({ ...formData!, avatar: url });
+            toast.success('Image uploaded successfully');
+        } catch (err) {
+            // Error is handled by useCloudinaryUpload and displayed via toast
+        }
     };
 
     const handleSave = async () => {
@@ -213,21 +247,24 @@ export const GeneralProfile = () => {
         return (
             <div className="text-center text-gray-600">
                 <p>{error || 'No user data available.'}</p>
-                <Button variant="outline" onClick={() => {
-                    if (status === 'authenticated' && session?.user?.id && session?.user?.accessToken) {
-                        dispatch(fetchUserRequest({ userId: session.user.id }));
-                        getGeneralProfile(session.user.id, session.user.accessToken)
-                            .then((userData) => {
-                                setUser(userData);
-                                dispatch(fetchUserSuccess(userData));
-                            })
-                            .catch((error: any) => {
-                                const errorMessage = error.message || 'Failed to fetch user';
-                                dispatch(fetchUserFailure(errorMessage));
-                                toast.error(errorMessage);
-                            });
-                    }
-                }}>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        if (status === 'authenticated' && session?.user?.id && session?.user?.accessToken) {
+                            dispatch(fetchUserRequest({ userId: session.user.id }));
+                            getGeneralProfile(session.user.id, session.user.accessToken)
+                                .then((userData) => {
+                                    setUser(userData);
+                                    dispatch(fetchUserSuccess(userData));
+                                })
+                                .catch((error: any) => {
+                                    const errorMessage = error.message || 'Failed to fetch user';
+                                    dispatch(fetchUserFailure(errorMessage));
+                                    toast.error(errorMessage);
+                                });
+                        }
+                    }}
+                >
                     Try Again
                 </Button>
             </div>
@@ -310,21 +347,34 @@ export const GeneralProfile = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Avatar</label>
                         {isEditing ? (
-                            <Input
-                                value={formData.avatar || ''}
-                                onChange={(e) => handleChange(e, 'avatar')}
-                                className="mt-1"
-                                placeholder="https://example.com/avatar.jpg"
-                            />
+                            <div className="mt-1">
+                                <Input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif"
+                                    onChange={handleImageChange}
+                                    className="mb-2"
+                                    disabled={isUploading}
+                                />
+                                {isUploading && <p className="text-sm text-gray-600">Uploading...</p>}
+                                {formData.avatar && (
+                                    <Image
+                                        src={formData.avatar}
+                                        alt="Avatar Preview"
+                                        width={64}
+                                        height={64}
+                                        className="object-cover rounded-full mt-2"
+                                    />
+                                )}
+                            </div>
                         ) : (
                             <Image
                                 src={getAvatarSrc()}
                                 alt={formData.name || 'User'}
-                                width={128}
-                                height={128}
-                                className="object-cover rounded-full"
+                                width={64}
+                                height={64}
+                                className="object-cover rounded-full mt-1"
                                 priority={true}
-                                sizes="(max-width: 640px) 96px, 128px"
+                                sizes="(max-width: 640px) 48px, 64px"
                                 placeholder="blur"
                                 blurDataURL="/default-avatar.png"
                             />
@@ -447,7 +497,9 @@ export const GeneralProfile = () => {
                             <Button variant="outline" onClick={toggleEdit}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleSave}>Save</Button>
+                            <Button onClick={handleSave} disabled={isUploading}>
+                                Save
+                            </Button>
                         </>
                     ) : (
                         <Button onClick={toggleEdit}>Edit Profile</Button>

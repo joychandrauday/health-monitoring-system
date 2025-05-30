@@ -24,7 +24,6 @@ export const createAppointment = async (
                 body: JSON.stringify(data),
             }
         );
-        console.log(res);
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
@@ -225,9 +224,7 @@ export const GetSingleAppointment = async ({
                 },
             }
         );
-        console.log(res);
         const result = await res.json();
-        console.log(result);
         return {
             appointment: result || [],
         };

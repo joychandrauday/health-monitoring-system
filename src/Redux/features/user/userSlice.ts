@@ -29,28 +29,23 @@ const userSlice = createSlice({
         fetchUserFailure: (state, action: { payload: string }) => {
             state.loading = false;
             state.error = action.payload;
-            console.log('Fetch User Failure - Error:', action.payload);
         },
         updateUserRequest: (state) => {
             state.loading = true;
             state.error = null;
-            console.log('Update User Request');
         },
         updateUserSuccess: (state, action: { payload: User }) => {
             state.loading = false;
             state.user = action.payload;
-            console.log('Update User Success - User Data:', action.payload);
         },
         updateUserFailure: (state, action: { payload: string }) => {
             state.loading = false;
             state.error = action.payload;
-            console.log('Update User Failure - Error:', action.payload);
         },
         resetUserState: (state) => {
             state.user = null;
             state.loading = false;
             state.error = null;
-            console.log('User State Reset');
         },
     },
 });

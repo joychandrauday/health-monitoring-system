@@ -7,7 +7,7 @@ import { FaHeartbeat, FaCheckCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import useSocket from '@/hooks/useSocket';
 import TablePagination from '@/components/utils/TablePagination';
-import { IDoctor, Vital, IMedicalNotification } from '@/types';
+import { IDoctor, Vital, IMedicalNotification, User } from '@/types';
 import { Meta } from '../../Admin/Doctor/DoctorTable';
 import Image from 'next/image';
 import VitalsForm from './VitalForms';
@@ -63,7 +63,6 @@ const ClientVitals = ({
                     token: accessToken,
                     page: currentPage,
                 });
-                console.log('Fetched vitals:', response.vitals);
                 setVitalsHistory(response.vitals || []);
             } catch (error: any) {
                 console.error('Error fetching vitals:', error.message);
@@ -78,12 +77,10 @@ const ClientVitals = ({
 
     useEffect(() => {
         if (!socket || !isConnected) {
-            console.log('Socket not ready:', { socket: !!socket, isConnected });
             return;
         }
 
         const handleVitalAlert = (data: VitalAlert) => {
-            console.log('Received vital:alert:', data);
             if (data.patientId === userId) {
                 const notification: IMedicalNotification = {
                     _id: data.vitalId,
@@ -109,7 +106,6 @@ const ClientVitals = ({
         };
 
         const handleVitalSubmitted = (data: Vital) => {
-            console.log('Received vital:submitted:', data);
             if (data.patientId === userId) {
                 setVitalsHistory((prev) => [data, ...prev].slice(0, 50));
                 setShowForm(false);
@@ -126,7 +122,6 @@ const ClientVitals = ({
         };
 
         const handleNotificationAcknowledged = (data: AcknowledgmentNotification) => {
-            console.log('Received notification:acknowledged:', data);
             if (data.patientId === userId && data.notification.receiver === userId) {
                 setNotifications((prev) => [data.notification, ...prev].slice(0, 20));
                 toast.success(data.message, {
@@ -161,8 +156,11 @@ const ClientVitals = ({
     };
 
     const filteredDoctors = allDoctors.filter((doctor) =>
+        typeof doctor.user === "object" &&
+        "name" in doctor.user &&
         doctor.user.name.toLowerCase().includes(doctorSearch.toLowerCase())
     );
+
 
     const handleModalSubmit = () => {
         if (selectedDoctorId) {
@@ -192,6 +190,9 @@ const ClientVitals = ({
             });
         }
     };
+    function isUser(user: unknown): user is User {
+        return typeof user === "object" && user !== null && "name" in user && "_id" in user;
+    }
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
@@ -246,12 +247,15 @@ const ClientVitals = ({
                                 aria-label="Select a doctor"
                             >
                                 <option value="">Select a doctor</option>
-                                {filteredDoctors.map((doctor) => (
-                                    <option key={doctor.user._id} value={doctor.user._id}>
-                                        {doctor.user.name}
-                                    </option>
-                                ))}
+                                {filteredDoctors.map((doctor) =>
+                                    isUser(doctor.user) ? (
+                                        <option key={doctor.user._id} value={doctor.user._id}>
+                                            {doctor.user.name}
+                                        </option>
+                                    ) : null
+                                )}
                             </select>
+
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => {

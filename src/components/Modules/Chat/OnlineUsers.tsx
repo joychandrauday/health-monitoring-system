@@ -31,18 +31,15 @@ const OnlineUsers: React.FC<OnlineUsersProps> = ({ onlineUsers, offlineUsers, cu
         );
         setFilteredUsers(filtered);
         setIsLoading(false);
-        console.log(`Filtered ${tab} users:`, filtered);
     }, [searchQuery, onlineUsers, offlineUsers, tab, currentUserId]);
 
     const handleTabChange = (newTab: 'online' | 'offline') => {
         setTab(newTab);
         setSearchQuery('');
         setError(null);
-        console.log(`Switched to ${newTab} tab`);
     };
 
     const handleUserClick = (userId: string, userName: string) => {
-        console.log('User clicked:', { userId, isValid: Types.ObjectId.isValid(userId) });
         if (Types.ObjectId.isValid(userId)) {
             onSelectUser(userId, userName);
         } else {

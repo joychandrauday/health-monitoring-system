@@ -46,7 +46,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
 
   const handleLogout = async () => {
     await logout();
-    await signOut({ href: '/login' });
+    await signOut({ callbackUrl: '/login' });
   };
 
   return (

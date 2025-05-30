@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,13 +22,12 @@ const ChatIconModal: React.FC = () => {
 
     // Fetch conversations when user is logged in
     useEffect(() => {
-        if (userId && Types.ObjectId.isValid(userId)) {
-            console.log('Fetching conversations for ChatIconModal, userId:', userId);
+        if (session?.user && userId && Types.ObjectId.isValid(userId)) {
             fetchConversations();
         } else {
             console.warn('Invalid or missing userId for ChatIconModal:', userId);
         }
-    }, [userId, fetchConversations]);
+    }, [userId, fetchConversations, session?.user]);
 
     // Show toast for new messages
     useEffect(() => {
@@ -37,7 +37,6 @@ const ChatIconModal: React.FC = () => {
         }
 
         socket.on('message', (message: any) => {
-            console.log('ChatIconModal received message:', message);
             if (message.receiverId === userId && message.senderId?._id !== userId) {
                 toast.success(
                     <div>
@@ -56,7 +55,6 @@ const ChatIconModal: React.FC = () => {
                         ),
                     }
                 );
-                console.log('Toast notification shown for message:', message);
             }
         });
 
@@ -67,7 +65,6 @@ const ChatIconModal: React.FC = () => {
 
     const handleSelectUser = useCallback(
         (selectedUserId: string) => {
-            console.log('ChatIconModal handleSelectUser:', { selectedUserId });
             if (!Types.ObjectId.isValid(selectedUserId)) {
                 console.error('Invalid selectedUserId in ChatIconModal:', selectedUserId);
                 return;
@@ -76,7 +73,6 @@ const ChatIconModal: React.FC = () => {
             if (user) {
                 setSelectedUser({ id: selectedUserId, name: user.name });
                 setIsModalOpen(false);
-                console.log('Set selectedUser:', { id: selectedUserId, name: user.name });
             }
         },
         [conversations]
@@ -84,14 +80,12 @@ const ChatIconModal: React.FC = () => {
 
     const toggleModal = () => {
         setIsModalOpen((prev) => !prev);
-        console.log('Chat modal toggled:', !isModalOpen);
     };
 
     if (!session?.user || !userId || !Types.ObjectId.isValid(userId)) {
         return null;
     }
 
-    console.log('ChatIconModal rendering, conversations:', conversations);
 
     return (
         <>
@@ -156,7 +150,6 @@ const ChatIconModal: React.FC = () => {
                         isOpen={!!selectedUser}
                         onClose={() => {
                             setSelectedUser(null);
-                            console.log('Closed ChatPopup, reset selectedUser');
                         }}
                         className="z-50"
                     />

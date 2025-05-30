@@ -48,7 +48,6 @@ interface SenderResponse {
 // Send a message to the server
 export const sendMessages = async (message: ChatMessage, token: string) => {
     try {
-        console.log('Sending message to server:', { receiverId: message.receiverId, message: message.message });
         const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_API}/chats`, {
             method: 'POST',
             headers: {
@@ -64,7 +63,6 @@ export const sendMessages = async (message: ChatMessage, token: string) => {
             throw new Error(`Failed to send message: ${res.statusText}`);
         }
         const response = await res.json();
-        console.log('Server response for sendMessages:', response);
 
         // Handle nested response (e.g., { success: true, data: {...} })
         const messageData = response.data || response;
@@ -89,7 +87,6 @@ export const getMessage = async (
 ): Promise<{ chats: ChatMessage[]; meta: ChatMeta }> => {
     try {
         const url = `${process.env.NEXT_PUBLIC_SERVER_API}/chats/${senderId}/${receiverId}?page=${page}&limit=${limit}`;
-        console.log('Fetching messages from:', url);
         const res = await fetch(url, {
             method: 'GET',
             headers: {
@@ -103,7 +100,6 @@ export const getMessage = async (
             throw new Error(`Failed to fetch messages: ${res.statusText}`);
         }
         const data: { chats: ChatMessage[]; meta: ChatMeta } = await res.json();
-        console.log('Fetched messages:', data);
         return data;
     } catch (error) {
         console.error('Error fetching messages:', error);
@@ -114,14 +110,19 @@ export const getMessage = async (
 // Fetch unique senders for a receiver
 export const getUniqueSenders = async (
     receiverId: string,
-    token: string,
+    token: string | null,
     page: number = 1,
     limit: number = 10
 ): Promise<SenderResponse> => {
+    if (!token || typeof token !== 'string' || token.trim() === '') {
+        console.warn('Token is invalid or missing. Skipping API call.');
+        return {
+            senders: [],
+            meta: { total: 0, page, limit, totalPages: 0 },
+        };
+    }
     try {
-        console.log('unique is called');
         const url = `${process.env.NEXT_PUBLIC_SERVER_API}/chats/${receiverId}?page=${page}&limit=${limit}`;
-        console.log('Fetching unique senders from:', url);
         const res = await fetch(url, {
             method: 'GET',
             headers: {
@@ -134,15 +135,18 @@ export const getUniqueSenders = async (
             console.error('Failed to fetch unique senders:', res.status, errorText);
             throw new Error(`Failed to fetch unique senders: ${res.statusText}`);
         }
+
         const data = await res.json();
-        console.log('Fetched unique senders:', data);
-        const response: SenderResponse = {
+
+        return {
             senders: data.data.senders,
             meta: data.data.meta,
         };
-        return response;
     } catch (error) {
         console.error('Error fetching unique senders:', error);
-        return { senders: [], meta: { total: 0, page, limit, totalPages: 0 } };
+        return {
+            senders: [],
+            meta: { total: 0, page, limit, totalPages: 0 },
+        };
     }
 };

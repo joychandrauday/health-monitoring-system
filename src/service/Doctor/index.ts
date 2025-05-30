@@ -35,7 +35,7 @@ export const GetAllDocs = async ({
     page = 1,
     limit = 10,
     token
-}: { page?: number; limit?: number, token: string }): Promise<{
+}: { page?: number; limit?: number, token?: string }): Promise<{
     doctors: IDoctor[];
     docMeta: Meta;
 }> => {
@@ -51,7 +51,6 @@ export const GetAllDocs = async ({
                 },
             }
         );
-        console.log(res);
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
@@ -73,6 +72,13 @@ export const GetAllDocsSocket = async ({
     doctors: IDoctor[];
     docMeta: Meta;
 }> => {
+    if (!token || typeof token !== 'string' || token.trim() === '') {
+        console.warn('Token is invalid or missing. Skipping API call.');
+        return {
+            doctors: [],
+            docMeta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+        }
+    }
     try {
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/doctors?page=${page}&limit=${limit}`,

@@ -18,7 +18,6 @@ const DynamicAppointmentPage = async ({ params }: Props) => {
         if (!appointment || !appointment.appointment) {
             return <div className="p-4">appointment data not found</div>;
         }
-        console.log(appointment);
         return (
             <div className="p-4">
 

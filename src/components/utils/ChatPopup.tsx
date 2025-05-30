@@ -27,7 +27,6 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
 }) => {
     const { socket, isConnected } = useSocket();
     const { messages, sendMessage, fetchChatHistory, isOnline, meta, isLoading, error } = useMessages(userId, socket);
-    console.log(fetchChatHistory, 'Fetched Message!!');
     const [input, setInput] = useState('');
     const [page, setPage] = useState(1);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,7 +39,6 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
     useEffect(() => {
         if (selectedUserId && isOpen && isConnected) {
             const online = isOnline(selectedUserId);
-            console.log('Online status for', selectedUserId, ':', online);
             setIsOnlineUser(online);
         } else {
             setIsOnlineUser(false);
@@ -50,7 +48,6 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
     // Scroll to bottom handler
     const scrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
-            console.log('Scrolling to bottom');
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, []);
@@ -64,7 +61,6 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
         }
 
         fetchTimeoutRef.current = setTimeout(() => {
-            console.log('Fetching chat history for userId:', selectedUserId);
             fetchChatHistory(selectedUserId, page, 10).catch((err) =>
                 console.error('Failed to fetch chat history:', err)
             );
@@ -86,12 +82,11 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
     const loadMoreMessages = useCallback(() => {
         if (isFetchingMore.current || isLoading || !meta || messages.length >= meta.total) return;
         isFetchingMore.current = true;
-        console.log('Loading more messages, new page:', page + 1);
         setPage((prev) => prev + 1);
         setTimeout(() => {
             isFetchingMore.current = false;
         }, 300);
-    }, [isLoading, meta, messages.length, page]);
+    }, [isLoading, meta, messages.length]);
 
     // Handle scroll to load more
     const handleScroll = useCallback(() => {
@@ -121,7 +116,6 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
         }
 
         try {
-            console.log('Sending message to:', selectedUserId);
             await sendMessage(selectedUserId, input);
             setInput('');
             scrollToBottom();
@@ -209,7 +203,7 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
                         </Button>
                     )}
                     {error && (
-                        <p className="text-red-500 text-center text-xs">Error: {error.message}</p>
+                        <p className="text-red-500 text-center text-xs">Error happened!</p>
                     )}
                     {isLoading && !messages.length ? (
                         <div className="flex justify-center items-center h-full">

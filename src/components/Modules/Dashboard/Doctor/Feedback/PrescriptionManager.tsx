@@ -52,11 +52,9 @@ const PrescriptionManager = ({ initialPrescriptions, vitalId }: PrescriptionMana
             setPrescriptions(updatedPrescriptions);
             await UpdateMedicine(vitalId, medicationForm, session?.user?.accessToken as string)
             toast.success('medication updated successfully!')
-            console.log('Medication Updated:', medicationForm);
             setEditingMedicationIndex(null);
         } else {
             setPrescriptions([...prescriptions, { ...medicationForm }]);
-            console.log('Medication Added:', medicationForm);
             await AddMedicine(vitalId, medicationForm, session?.user?.accessToken as string)
             toast.success('medication added successfully!')
         }

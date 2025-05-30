@@ -144,7 +144,6 @@ const BookAppointment: React.FC<{ token: string }> = ({ token }) => {
         };
 
         try {
-            console.log(data);
             const result = await createAppointment(data, token);
             if (result) {
                 setSuccess('You Have booked an appointment!');
