@@ -18,6 +18,7 @@ export interface Review {
 }
 export interface Doctor {
     _id: string;
+    user: User;
     email: string;
     name: string;
     role: string;
@@ -35,6 +36,7 @@ export interface Doctor {
     };
     reviews?: Review[];
     averageRating?: number; // 👈 Optional: because initially no rating
+    isOnline?: boolean;
 }
 
 export interface Meta {

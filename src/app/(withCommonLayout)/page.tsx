@@ -1,8 +1,12 @@
 
+import Landing from "@/components/Modules/HomePage/Landing";
+
 const HomeBannerElements = () => {
   return (
     <>
-      <h1>home page</h1>
+      <div className="w-full">
+        <Landing />
+      </div>
     </>
   );
 };

@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "react-hot-toast";
 import SessionProviders from "@/lib/sessionProviders";
 import StoreProvider from "@/lib/storeProvider";
+import ChatIconModal from "@/components/Modules/Chat/ChatIconModal";
 
 export const metadata: Metadata = {
   title: "Joy Chandra Uday | Full Stack Developer",
@@ -27,8 +28,9 @@ export default function RootLayout({
               enableSystem={false}
               forcedTheme="light"
             >
-              <div className="flex">
-                <main className="min-h-screen flex-1">{children}</main>
+              <div className="">
+                <main className="min-h-screen  overflow-hidden">{children}</main>
+                <ChatIconModal />
               </div>
               <Toaster />
             </ThemeProvider>

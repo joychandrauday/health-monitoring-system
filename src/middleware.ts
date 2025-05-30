@@ -1,5 +1,7 @@
 export { default } from "next-auth/middleware"
 
 export const config = {
-    matcher: ['/dashboard/:path*']
+    matcher: [
+        '/:role(patient|doctor|admin)/dashboard/:path*'
+    ]
 }

@@ -2,7 +2,7 @@
 'use client'
 import { Button } from '@/components/ui/button';
 import { IAppointment } from '@/types';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Calendar, Clock, DollarSign, Heart, MapPin, Stethoscope, Video } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -13,6 +13,7 @@ interface SingleAppointmentPatientProps {
 }
 const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ appointment, token }) => {
     const router = useRouter();
+    console.log(appointment);
     const handlePayment = async () => {
         try {
             alert('Processing payment... (Placeholder for payment gateway)');
@@ -63,7 +64,6 @@ const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ app
                                 </p>
                             </div>
                         </div>
-
                         {/* Date */}
                         <div className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
                             <div className="p-2 bg-teal-100 rounded-full">
@@ -72,7 +72,7 @@ const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ app
                             <div>
                                 <p className="text-sm font-medium text-gray-600">Date</p>
                                 <p className="text-base font-semibold text-gray-900">
-                                    {format(new Date(appointment.appointmentDate), 'PPP')}
+                                    {format(parseISO(appointment.appointmentDate as string), 'PPP')}
                                 </p>
                             </div>
                         </div>
@@ -85,10 +85,11 @@ const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ app
                             <div>
                                 <p className="text-sm font-medium text-gray-600">Time</p>
                                 <p className="text-base font-semibold text-gray-900">
-                                    {format(new Date(`1970-01-01T${appointment.appointmentTime}:00`), 'h:mm a')} ({appointment.duration} min)
+                                    {format(parseISO(appointment.appointmentDate as string), 'p')} ({appointment.duration} min)
                                 </p>
                             </div>
                         </div>
+
 
                         {/* Type */}
                         <div className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
@@ -222,7 +223,7 @@ const SingleAppointmentPatient: React.FC<SingleAppointmentPatientProps> = ({ app
                     ) : (
                         <div className="bg-white p-6 rounded-lg shadow-sm">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Teleconsultation Actions</h3>
-                            <TeleconsultationActions appointmentId={appointment._id} />
+                            <TeleconsultationActions appointment={appointment} />
                         </div>
                     )}
                 </div>

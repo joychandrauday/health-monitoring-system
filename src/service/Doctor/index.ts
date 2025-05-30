@@ -34,11 +34,11 @@ export const GetDocRequest = async (
 export const GetAllDocs = async ({
     page = 1,
     limit = 10,
-}: { page?: number; limit?: number }): Promise<{
+    token
+}: { page?: number; limit?: number, token: string }): Promise<{
     doctors: IDoctor[];
     docMeta: Meta;
 }> => {
-    const session = await getServerSession(authOptions);
 
     try {
         const res = await fetch(
@@ -46,12 +46,12 @@ export const GetAllDocs = async ({
             {
                 method: "GET",
                 headers: {
-                    Authorization: `Bearer ${session?.user?.accessToken}`,
+                    Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
             }
         );
-
+        console.log(res);
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
