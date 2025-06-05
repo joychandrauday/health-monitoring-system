@@ -72,8 +72,9 @@ export const getGeneralProfile = async (
                 errorData.message || `Failed to fetch user. Status code: ${res.status}`
             );
         }
-
+        console.log(res);
         const data = await res.json();
+        // console.log('Fetch Data:', data);
         if (!data.data) {
             throw new Error('No user data returned from API');
         }
@@ -107,6 +108,7 @@ export const getDoctorProfile = async (
         }
 
         const data = await res.json();
+        console.log('Fetch Data:', data);
         if (!data.data) {
             throw new Error('No user data returned from API');
         }
@@ -151,6 +153,7 @@ export const UpdateGeneralProfile = async (
     token: string
 ): Promise<any> => {
     try {
+        console.log(userData);
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_SERVER_API}/users/${userId}`,
             {
@@ -164,6 +167,7 @@ export const UpdateGeneralProfile = async (
         );
 
         const updatedUser = await res.json();
+        console.log(updatedUser);
         revalidatePath(`/user/dashboard`);
         return updatedUser;
     } catch (error: any) {

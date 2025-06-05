@@ -63,6 +63,7 @@ const ClientVitals = ({
                     token: accessToken,
                     page: currentPage,
                 });
+                console.log('Fetched vitals:', response.vitals);
                 setVitalsHistory(response.vitals || []);
             } catch (error: any) {
                 console.error('Error fetching vitals:', error.message);
@@ -77,10 +78,12 @@ const ClientVitals = ({
 
     useEffect(() => {
         if (!socket || !isConnected) {
+            console.log('Socket not ready:', { socket: !!socket, isConnected });
             return;
         }
 
         const handleVitalAlert = (data: VitalAlert) => {
+            console.log('Received vital:alert:', data);
             if (data.patientId === userId) {
                 const notification: IMedicalNotification = {
                     _id: data.vitalId,
@@ -106,6 +109,7 @@ const ClientVitals = ({
         };
 
         const handleVitalSubmitted = (data: Vital) => {
+            console.log('Received vital:submitted:', data);
             if (data.patientId === userId) {
                 setVitalsHistory((prev) => [data, ...prev].slice(0, 50));
                 setShowForm(false);
@@ -122,6 +126,7 @@ const ClientVitals = ({
         };
 
         const handleNotificationAcknowledged = (data: AcknowledgmentNotification) => {
+            console.log('Received notification:acknowledged:', data);
             if (data.patientId === userId && data.notification.receiver === userId) {
                 setNotifications((prev) => [data.notification, ...prev].slice(0, 20));
                 toast.success(data.message, {
