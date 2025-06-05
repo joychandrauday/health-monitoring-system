@@ -48,7 +48,6 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
     await logout();
     await signOut({ callbackUrl: '/login' });
   };
-
   return (
     <>
       {/* Placeholder to prevent content shift */}
@@ -68,7 +67,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
           <div className="flex items-center gap-4">
             <a
               href="tel:+1234567890"
-              className="flex items-center gap-1.5 hover:text-teal-400 transition-colors duration-200"
+              className="flex items-center gap-1.5 hover:text-gray-300 transition-colors duration-200"
               aria-label="Contact Phone Number"
             >
               <Phone className="w-3.5 h-3.5" />
@@ -76,7 +75,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
             </a>
             <a
               href="mailto:support@remotehealth.com"
-              className="flex items-center gap-1.5 hover:text-teal-400 transition-colors duration-200"
+              className="flex items-center gap-1.5 hover:text-gray-300 transition-colors duration-200"
               aria-label="Contact Email"
             >
               <Mail className="w-3.5 h-3.5" />
@@ -90,7 +89,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    className="flex items-center gap-2 text-white hover:bg-gray-700/50 rounded-full px-3 py-1.5 transition-colors duration-200"
+                    className="flex items-center border gap-2 text-white hover:bg-gray-700/50 rounded-full px-3 py-1.5 transition-colors duration-200"
                     aria-label={`User menu for ${session.user.name ?? 'User'}`}
                   >
                     <Image
@@ -101,17 +100,17 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
                       className="rounded-full"
                       priority
                     />
-                    <span className="hidden md:inline text-md font-medium">{session.user.name ?? 'unknown'}</span>
+                    <span className="hidden md:inline text-md ">{session.user.name ?? 'unknown'}</span>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48 bg-white shadow-lg rounded-md border-none mt-2">
-                    <DropdownMenuItem className="px-3 py-2 text-gray-800 text-md font-medium">
+                    <DropdownMenuItem className="px-3 py-2 text-gray-700 text-md ">
                       Welcome, {session.user.name ?? 'unknown'}
                     </DropdownMenuItem>
                     {session.user.role && (
                       <DropdownMenuItem className="px-3 py-2">
                         <Link
                           href={`/${session.user.role}/dashboard`}
-                          className="w-full text-gray-800 hover:text-teal-600 text-md transition-colors"
+                          className="w-full text-gray-700 hover:text-teal-600 text-md transition-colors"
                         >
                           Dashboard
                         </Link>
@@ -119,7 +118,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
                     )}
                     <DropdownMenuItem
                       onClick={handleLogout}
-                      className="px-3 py-2 text-gray-800 hover:text-red-500 text-md cursor-pointer"
+                      className="px-3 py-2 text-gray-700 hover:text-red-500 text-md cursor-pointer"
                     >
                       Logout
                     </DropdownMenuItem>
@@ -131,7 +130,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="text-md font-medium hover:text-teal-400 transition-colors"
+                  className="text-md  hover:text-primary transition-colors"
                   aria-label="Sign In"
                 >
                   Sign In
@@ -139,7 +138,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
                 <span className="text-gray-400">/</span>
                 <Link
                   href="/register"
-                  className="text-md font-medium hover:text-teal-400 transition-colors"
+                  className="text-md  hover:text-primary transition-colors"
                   aria-label="Register"
                 >
                   Register
@@ -176,28 +175,28 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
           <nav className="hidden lg:flex w-1/3 justify-center items-center gap-6">
             <Link
               href="/"
-              className="text-gray-600 text-md font-medium hover:text-primary transition-colors duration-200"
+              className="text-gray-700 font-bold text-md  hover:text-primary transition-colors duration-200"
               aria-label="Home"
             >
               Home
             </Link>
             <Link
               href="/services"
-              className="text-gray-600 text-md font-medium hover:text-primary transition-colors duration-200"
+              className="text-gray-700 font-bold text-md  hover:text-primary transition-colors duration-200"
               aria-label="Services"
             >
               Services
             </Link>
             <Link
               href="/about"
-              className="text-gray-600 text-md font-medium hover:text-primary transition-colors duration-200"
+              className="text-gray-700 font-bold text-md  hover:text-primary transition-colors duration-200"
               aria-label="About"
             >
               About
             </Link>
             <Link
               href="/contact"
-              className="text-gray-600 text-md font-medium hover:text-primary transition-colors duration-200"
+              className="text-gray-700 font-bold text-md  hover:text-primary transition-colors duration-200"
               aria-label="Contact"
             >
               Contact
@@ -208,7 +207,7 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
           <div className="flex justify-end w-1/3 gap-3">
             <Link
               href="/patient/dashboard/appointments/"
-              className="px-4 py-2 bg-primary text-white rounded-full text-md font-medium hover:bg-teal-700 transition-colors duration-200"
+              className="px-4 py-2 bg-primary text-white rounded-full text-md  hover:bg-teal-700 transition-colors duration-200"
               aria-label="Book Appointment"
             >
               Book Appointment
@@ -219,28 +218,28 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
                 className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
                 aria-label="Mobile Menu"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-700 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48 bg-white shadow-lg rounded-md border-none mt-2">
                 <DropdownMenuItem>
-                  <Link href="/" className="w-full text-gray-800 hover:text-teal-600 text-md transition-colors py-2">
+                  <Link href="/" className="w-full text-gray-700 hover:text-teal-600 text-md transition-colors py-2">
                     Home
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link href="/services" className="w-full text-gray-800 hover:text-teal-600 text-md transition-colors py-2">
+                  <Link href="/services" className="w-full text-gray-700 hover:text-teal-600 text-md transition-colors py-2">
                     Services
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link href="/about" className="w-full text-gray-800 hover:text-teal-600 text-md transition-colors py-2">
+                  <Link href="/about" className="w-full text-gray-700 hover:text-teal-600 text-md transition-colors py-2">
                     About
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link href="/contact" className="w-full text-gray-800 hover:text-teal-600 text-md transition-colors py-2">
+                  <Link href="/contact" className="w-full text-gray-700 hover:text-teal-600 text-md transition-colors py-2">
                     Contact
                   </Link>
                 </DropdownMenuItem>

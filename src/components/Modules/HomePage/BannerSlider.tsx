@@ -71,7 +71,7 @@ const BannerSlider: React.FC = () => {
                                 </p>
                                 <a
                                     href={banner.link}
-                                    className="mt-4 sm:mt-6 inline-block px-6 py-2 bg-secondary hover:bg-teal-600 text-white font-medium rounded-full shadow-lg transition duration-300 animate-fadeIn delay-200"
+                                    className="mt-4 sm:mt-6 inline-block px-6 py-2 bg-secondary hover:bg-primary text-white font-medium rounded-full shadow-lg transition duration-300 animate-fadeIn delay-200"
                                 >
                                     {banner.cta}
                                 </a>

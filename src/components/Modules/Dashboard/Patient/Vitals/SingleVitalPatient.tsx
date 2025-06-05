@@ -18,7 +18,7 @@ const SingleVitalPatient = ({ vital }: SingleVitalPatientProps) => {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [resultLinkInput, setResultLinkInput] = useState<{ [key: number]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState<{ [key: number]: boolean }>({});
-    if (!vital.success) {
+    if (!vital) {
         return (
             <div className="p-6 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md shadow-sm">
                 <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">

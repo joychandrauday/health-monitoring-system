@@ -122,6 +122,7 @@ export const getUniqueSenders = async (
         };
     }
     try {
+        console.log(token);
         const url = `${process.env.NEXT_PUBLIC_SERVER_API}/chats/${receiverId}?page=${page}&limit=${limit}`;
         const res = await fetch(url, {
             method: 'GET',
