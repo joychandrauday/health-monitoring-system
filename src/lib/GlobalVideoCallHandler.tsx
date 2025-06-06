@@ -6,15 +6,9 @@ import { VideoCallModal } from '@/components/Modules/VideoCall/VideoCallModal';
 import { useVideoChat } from '@/hooks/useVideoChat';
 import { useCallback, useMemo } from 'react';
 
-// Error component for fallback UI
-const ErrorFallback: React.FC<{ message: string }> = ({ message }) => (
-    <div role="alert" style={{ color: 'red', padding: '10px' }}>
-        {message}
-    </div>
-);
 
 export const GlobalVideoCallHandler: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { data: session, status } = useSession();
+    const { data: session } = useSession();
     const { incomingCall } = useSocketContext();
     const {
         localStream,
@@ -26,7 +20,7 @@ export const GlobalVideoCallHandler: React.FC<{ children: React.ReactNode }> = (
         toggleVideoMute,
         isAudioMuted,
         isVideoMuted,
-        error: videoChatError,
+        error
     } = useVideoChat();
 
     // Memoize callbacks to prevent unnecessary re-renders
@@ -36,20 +30,11 @@ export const GlobalVideoCallHandler: React.FC<{ children: React.ReactNode }> = (
     const memoizedToggleAudioMute = useCallback(() => toggleAudioMute(), [toggleAudioMute]);
     const memoizedToggleVideoMute = useCallback(() => toggleVideoMute(), [toggleVideoMute]);
 
-    // Check for loading or error states
-    const isLoading = status === 'loading';
-    const hasError = videoChatError || !session?.user?.id;
 
     // Memoize modal visibility to avoid recomputation
     const isModalOpen = useMemo(() => !!incomingCall && !!session?.user?.id, [incomingCall, session]);
 
-    if (isLoading) {
-        return <div>Loading session...</div>;
-    }
 
-    if (hasError) {
-        return <ErrorFallback message={videoChatError || 'User not authenticated'} />;
-    }
 
     return (
         <>
