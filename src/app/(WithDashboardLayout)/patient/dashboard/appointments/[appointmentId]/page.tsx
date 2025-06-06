@@ -20,7 +20,6 @@ const DynamicAppointmentPage = async ({ params }: Props) => {
         }
         return (
             <div className="p-4">
-
                 <SingleAppointmentPatient appointment={appointment.appointment} token={session?.user?.accessToken as string} />
             </div>
         );

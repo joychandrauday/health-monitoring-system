@@ -1,5 +1,6 @@
 
 
+import Peer from 'simple-peer'
 export type Session = {
     user?: {
         name: string;
@@ -145,6 +146,30 @@ export interface IAppointment extends Document {
     updatedAt: Date;
 }
 
+export interface SingleAppointment extends Document {
+    _id: string;
+    patientId: string | User;
+    doctorId: string | User;
+    appointmentDate: string | Date;
+    appointmentTime: string;
+    duration: number;
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    type: 'in-person' | 'teleconsultation';
+    payment?: {
+        amount: number;
+        currency: string;
+        status: 'pending' | 'completed' | 'failed' | 'refunded';
+        transactionId?: string;
+        paymentMethod?: 'credit_card' | 'debit_card' | 'online_payment' | 'insurance';
+        paidAt?: Date;
+    };
+    vital: string | Vital;
+    reason: string;
+    notes?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 
 export interface ChatMessage {
     _id?: string;
@@ -160,4 +185,11 @@ export interface ChatMeta {
     page: number;
     limit: number;
     totalPages: number;
+}
+
+export interface PeerData {
+    peerConnection: Peer.Instance;
+    callerId: string;
+    recieverId: string; // Note: 'reciever' is as per provided code; consider renaming to 'receiver' for clarity
+    stream?: MediaStream;
 }

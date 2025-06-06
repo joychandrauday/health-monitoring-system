@@ -164,12 +164,11 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
 
             {/* Header */}
             <div className="flex justify-between items-center p-3 bg-secondary text-white rounded-t-2xl border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                    <span className="text-md font-medium truncate">{selectedUserName}</span>
-                    <span
-                        className={`w-2.5 h-2.5 rounded-full ${isOnlineUser ? 'bg-green-600' : 'bg-gray-400'}`}
-                        title={isOnlineUser ? 'Online' : 'Offline'}
-                    ></span>
+                <div className="flex items-center gap-4">
+                    <span className="text-lg font-semibold text-white truncate">{selectedUserName}</span>
+                    <span className={`text-[12px] font-normal border rounded-full px-3 ${isOnlineUser ? 'text-white animate-pulse' : 'text-gray-500'}`}>
+                        {isOnlineUser ? 'Online' : 'Offline'}
+                    </span>
                 </div>
                 <Button
                     variant="ghost"

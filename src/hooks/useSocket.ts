@@ -1,15 +1,20 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { io, Socket } from 'socket.io-client';
 
 const useSocket = () => {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
+        if (status !== 'authenticated' || !session?.user?.accessToken) {
+            console.log('Session not authenticated or token missing, skipping socket connection');
+            return;
+        }
+
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
-        console.log(socketUrl);
         if (!socketUrl) {
             console.error('Socket URL is not defined in environment variables');
             return;
@@ -25,14 +30,14 @@ const useSocket = () => {
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
             auth: {
-                token: session?.user?.accessToken,
+                token: session.user.accessToken,
             },
         });
 
         socketIo.on('connect', () => {
             console.log(`✅ Socket.io connected: ${socketIo.id}`);
             setIsConnected(true);
-            if (session?.user?.id && session?.user?.role) {
+            if (session.user && session.user.id && session.user.role) {
                 const roomEvent = session.user.role === 'patient' ? 'joinPatientRoom' : 'joinDoctorRoom';
                 const roomData = session.user.role === 'patient'
                     ? { patientId: session.user.id }
@@ -43,14 +48,14 @@ const useSocket = () => {
         });
 
         socketIo.on('connect_error', (error) => {
-            console.error('Socket.io connection error:', error.message, error);
+            console.error('Socket.io connection error:', error.message);
             setIsConnected(false);
         });
 
         socketIo.on('reconnect', (attempt) => {
             console.log(`✅ Socket.io reconnected after ${attempt} attempts`);
             setIsConnected(true);
-            if (session?.user?.id && session?.user?.role) {
+            if (session.user && session.user.id && session.user.role) {
                 const roomEvent = session.user.role === 'patient' ? 'joinPatientRoom' : 'joinDoctorRoom';
                 const roomData = session.user.role === 'patient'
                     ? { patientId: session.user.id }
@@ -77,7 +82,7 @@ const useSocket = () => {
             socketIo.disconnect();
             console.log('Socket.io client disconnected');
         };
-    }, [session?.user?.id, session?.user?.role, session?.user?.accessToken]);
+    }, [session?.user?.id, session?.user?.role, session?.user?.accessToken, status]);
 
     return { socket, isConnected };
 };

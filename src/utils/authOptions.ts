@@ -1,11 +1,13 @@
-import { NextAuthOptions, User } from "next-auth";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { NextAuthOptions, User, DefaultSession, Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import jwt from "jsonwebtoken";
 
 // Type augmentation for NextAuth
 declare module "next-auth" {
-    export interface Session {
+    interface Session {
         user?: {
             id: string;
             name: string;
@@ -60,8 +62,12 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     const user = await res.json();
-
                     if (!res.ok) throw new Error(user.message || "Login failed");
+
+                    // Ensure user.token is a string
+                    if (typeof user.token !== "string") {
+                        throw new Error("Invalid token received from server");
+                    }
 
                     return {
                         id: user.user._id,
@@ -99,26 +105,44 @@ export const authOptions: NextAuthOptions = {
             return token;
         },
 
-        async session({ session, token }) {
+        async session({ session, token }): Promise<Session | DefaultSession> {
+            // Initialize session.user if not present
             if (!session.user) {
                 session.user = {
                     id: "",
                     name: "",
                     email: "",
                     role: "",
-                    avatar: '',
+                    avatar: "",
                     accessToken: "",
                 };
             }
+            // Check if token.accessToken is a string
+            if (typeof token.accessToken !== "string") {
+                throw new Error("Invalid or missing access token");
+            }
 
-            session.user.id = String(token.id ?? "");
-            session.user.name = session.user.name ?? "";
-            session.user.email = session.user.email ?? "";
-            session.user.avatar = String(token.avatar ?? "");
-            session.user.role = String(token.role ?? "");
-            session.user.accessToken = String(token.accessToken ?? "");
+            try {
+                const decoded = jwt.decode(token.accessToken) as { exp: number } | null;
+                const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+                if (!decoded || !decoded.exp || decoded.exp < currentTime) {
+                    // Token is expired or invalid
+                    throw new Error("Token expired or invalid");
+                }
 
-            return session;
+                // Token is valid, populate session
+                session.user.id = String(token.id ?? "");
+                session.user.name = session.user.name ?? "";
+                session.user.email = session.user.email ?? "";
+                session.user.avatar = String(token.avatar ?? "");
+                session.user.role = String(token.role ?? "");
+                session.user.accessToken = token.accessToken;
+
+                return session;
+            } catch (error) {
+                // Handle token decoding or expiration errors
+                throw new Error("Invalid or expired token");
+            }
         },
     },
 };

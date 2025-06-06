@@ -1,4 +1,4 @@
-import SingleAppointmentPatient from '@/components/Modules/Dashboard/Patient/Appointments/SingleAppointmentPatient';
+import SingleAppointmentPatientDoc from '@/components/Modules/Dashboard/Doctor/Appointments/SingleAppointmentPatientDoc';
 import { GetSingleAppointment } from '@/service/Appointments';
 import { authOptions } from '@/utils/authOptions';
 import { getServerSession } from 'next-auth';
@@ -20,8 +20,7 @@ const DynamicAppointmentPage = async ({ params }: Props) => {
         }
         return (
             <div className="p-4">
-
-                <SingleAppointmentPatient appointment={appointment.appointment} token={session?.user?.accessToken as string} />
+                <SingleAppointmentPatientDoc appointment={appointment.appointment} token={session?.user?.accessToken as string} />
             </div>
         );
     } catch (error) {

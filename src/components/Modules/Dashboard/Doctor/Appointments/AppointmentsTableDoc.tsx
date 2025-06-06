@@ -290,7 +290,7 @@ const AppointmentsTableDoc: React.FC<AppointmentsTableProps> = ({ appointments: 
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => router.push(`/patient/dashboard/appointments/${appointment._id}`)}
+                                                onClick={() => router.push(`/doctor/dashboard/appointments/${appointment._id}`)}
                                                 className="hover:bg-gray-100"
                                             >
                                                 Details
