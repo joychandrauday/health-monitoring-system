@@ -144,8 +144,8 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const rtcPeerConnection: RTCPeerConnection = (peerConnection as any)._pc as RTCPeerConnection;
         rtcPeerConnection.oniceconnectionstatechange = () => {
+            console.log('ICE connection state:', rtcPeerConnection.iceConnectionState);
             if (rtcPeerConnection.iceConnectionState === 'disconnected' || rtcPeerConnection.iceConnectionState === 'failed') {
-                console.log('ICE connection state:', rtcPeerConnection.iceConnectionState);
                 cleanup();
             }
         };

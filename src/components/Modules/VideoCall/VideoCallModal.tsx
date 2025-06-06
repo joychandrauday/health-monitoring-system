@@ -40,6 +40,7 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     useEffect(() => {
         let timeout: NodeJS.Timeout;
         if (remoteStream) {
+            console.log('Remote stream received:', remoteStream.id);
             setNoRemoteStream(false);
         } else if (isOpen && !remoteStream) {
             timeout = setTimeout(() => {
