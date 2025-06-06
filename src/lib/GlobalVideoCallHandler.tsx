@@ -20,7 +20,6 @@ export const GlobalVideoCallHandler: React.FC<{ children: React.ReactNode }> = (
         toggleVideoMute,
         isAudioMuted,
         isVideoMuted,
-        error
     } = useVideoChat();
 
     // Memoize callbacks to prevent unnecessary re-renders
