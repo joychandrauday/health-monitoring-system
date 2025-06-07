@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -31,28 +32,35 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
-        console.log('VideoCallModal streams:', {
+        console.log('VideoCallModal rendering:', {
+            isOpen,
             hasLocalStream: !!localStream,
             hasRemoteStream: !!remoteStream,
+            callerName,
         });
         if (localVideoRef.current && localStream) {
+            console.log('Setting local stream:', localStream.id);
             localVideoRef.current.srcObject = localStream;
             localVideoRef.current.play().catch(err => console.error('Local video play error:', err));
         }
         if (remoteVideoRef.current && remoteStream) {
+            console.log('Setting remote stream:', remoteStream.id);
             remoteVideoRef.current.srcObject = remoteStream;
             remoteVideoRef.current.play().catch(err => console.error('Remote video play error:', err));
         }
-    }, [localStream, remoteStream]);
+    }, [localStream, remoteStream, isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        console.log('VideoCallModal not open');
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
             <div className="relative w-full max-w-4xl h-[80vh] bg-gray-900 rounded-lg overflow-hidden flex flex-col">
-                <div className="flex-1 relative">
-                    {/* Remote Video (Main) */}
-                    <div className="absolute inset-0">
+                <div className="flex-1 grid grid-cols-2 gap-2 p-2">
+                    {/* Remote Video */}
+                    <div className="relative bg-gray-800 rounded-lg">
                         {remoteStream ? (
                             <video
                                 ref={remoteVideoRef}
@@ -61,13 +69,13 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                            <div className="w-full h-full flex items-center justify-center">
                                 <p className="text-white text-lg">Waiting for {callerName}...</p>
                             </div>
                         )}
                     </div>
-                    {/* Local Video (Picture-in-Picture) */}
-                    <div className="absolute bottom-4 right-4 w-1/4 h-1/4 bg-black border-2 border-white rounded-lg overflow-hidden">
+                    {/* Local Video */}
+                    <div className="relative bg-gray-800 rounded-lg">
                         {localStream ? (
                             <video
                                 ref={localVideoRef}
@@ -78,8 +86,8 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                                 style={{ transform: 'scaleX(-1)' }}
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                                <p className="text-white text-sm">No video</p>
+                            <div className="w-full h-full flex items-center justify-center">
+                                <p className="text-white text-lg">No local video</p>
                             </div>
                         )}
                     </div>

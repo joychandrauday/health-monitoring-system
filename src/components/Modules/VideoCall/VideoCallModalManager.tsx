@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useVideoChat } from '@/hooks/useVideoChat';
+import { CallRingingModal } from './CallRingingModal';
 import { useVideoCallContext } from '@/lib/VideoCallContext';
 import { useAppContext } from '@/lib/FirebaseContext';
-import { CallRingingModal } from './CallRingingModal';
 import { VideoCallModal } from './VideoCallModal';
 
 export const VideoCallModalManager: React.FC = () => {
     const { data: session } = useSession();
     const { callRinging, incomingCall } = useVideoCallContext();
     const { declineCall: contextDeclineCall } = useAppContext();
-
     const {
         localStream,
         remoteStream,
@@ -25,7 +24,6 @@ export const VideoCallModalManager: React.FC = () => {
         hangUp,
         isCallActive,
     } = useVideoChat();
-
     const [isRingingModalOpen, setIsRingingModalOpen] = useState(false);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [isDeclined, setIsDeclined] = useState(false);
@@ -41,28 +39,29 @@ export const VideoCallModalManager: React.FC = () => {
             hasRemoteStream: !!remoteStream,
         });
 
-        if (incomingCall && session?.user?.id === incomingCall?.recipientId && !isCallActive) {
-            console.log('User is receiver for incoming call:', incomingCall);
-            setIsRingingModalOpen(true);
-            setIsReceiver(true);
-            setIsDeclined(false);
-            setIsVideoModalOpen(false);
-        } else if (callRinging && session?.user?.id === callRinging?.callerId && !isCallActive) {
-            console.log('User is caller for ringing call:', callRinging);
-            setIsRingingModalOpen(true);
-            setIsReceiver(false);
-            setIsDeclined(false);
-            setIsVideoModalOpen(false);
-        } else if (isCallActive) {
-            console.log('Call is active, showing video modal');
+        if (isCallActive) {
+            console.log('Call is active, opening video modal');
             setIsVideoModalOpen(true);
             setIsRingingModalOpen(false);
             setIsDeclined(false);
+        } else if (incomingCall && session?.user?.id === incomingCall.recipientId) {
+            console.log('User is receiver for incoming call:', incomingCall);
+            setIsRingingModalOpen(true);
+            setIsVideoModalOpen(false);
+            setIsReceiver(true);
+            setIsDeclined(false);
+        } else if (callRinging && session?.user?.id === callRinging.callerId) {
+            console.log('User is caller for ringing call:', callRinging);
+            setIsRingingModalOpen(true);
+            setIsVideoModalOpen(false);
+            setIsReceiver(false);
+            setIsDeclined(false);
         } else {
-            console.log('Closing all call modals');
+            console.log('Closing all modals');
             setIsRingingModalOpen(false);
             setIsVideoModalOpen(false);
             setIsReceiver(false);
+            setIsDeclined(false);
         }
     }, [callRinging, incomingCall, session?.user?.id, isCallActive, localStream, remoteStream]);
 
@@ -75,7 +74,6 @@ export const VideoCallModalManager: React.FC = () => {
 
     const handleCancel = () => {
         console.log('Handling cancel/decline call', { isReceiver, incomingCall, callRinging });
-
         if (isReceiver && incomingCall) {
             declineCall();
             setIsDeclined(true);
@@ -87,7 +85,6 @@ export const VideoCallModalManager: React.FC = () => {
             );
             setIsDeclined(true);
         }
-
         setTimeout(() => {
             setIsRingingModalOpen(false);
             setIsVideoModalOpen(false);

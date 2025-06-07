@@ -1,17 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Peer, { SignalData } from 'simple-peer';
 import { useSession } from 'next-auth/react';
 import { IAppointment } from '@/types';
-import useSocket from './useSocket';
 import { useAppContext } from '@/lib/FirebaseContext';
+import useSocket from './useSocket';
 
 interface PeerData {
     peerConnection: Peer.Instance;
     callerId: string;
     receiverId: string;
-    stream?: MediaStream | null;
+    stream?: MediaStream;
 }
 
 interface UseVideoChatReturn {
@@ -92,7 +93,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
     const createPeer = useCallback((stream: MediaStream, initiator: boolean, callerId: string, receiverId: string) => {
         const iceServers: RTCIceServer[] = [
-            { urls: ['stun:stun.l.google.com:19302'] },
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            {
+                urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+                username: 'webrtc',
+                credential: 'webrtc',
+            },
         ];
         const peerConnection = new Peer({
             initiator,
@@ -102,6 +110,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         peerConnection.on('signal', (data: SignalData) => {
+            console.log('Peer signal generated:', { callerId, receiverId, signalData: data });
             if (socket && session?.user?.id && callDataRef.current) {
                 console.log('Emitting signal:', { callerId, receiverId, appointmentId: callDataRef.current.appointmentId });
                 socket.emit('signal', {
@@ -129,6 +138,16 @@ export const useVideoChat = (): UseVideoChatReturn => {
             console.log('Peer connection closed');
             cleanup();
         });
+
+        // Log ICE connection state
+        const rtcPeerConnection: RTCPeerConnection = (peerConnection as any)._pc as RTCPeerConnection;
+        rtcPeerConnection.oniceconnectionstatechange = () => {
+            console.log('ICE connection state:', rtcPeerConnection.iceConnectionState);
+            if (rtcPeerConnection.iceConnectionState === 'failed') {
+                setError('ICE connection failed');
+                cleanup();
+            }
+        };
 
         return peerConnection;
     }, [session?.user?.id, socket, cleanup]);
@@ -234,6 +253,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             callerId: callDataRef.current.callerId,
             recipientId: session.user?.id,
         });
+        setIsCallActive(true); // Ensure isCallActive is set immediately
     }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
     const declineCall = useCallback(() => {
@@ -270,6 +290,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             const audioTracks = localStream.getAudioTracks();
             audioTracks.forEach(track => {
                 track.enabled = !isAudioMuted;
+                console.log(`Audio track ${track.id} enabled: ${track.enabled}`);
             });
             setIsAudioMuted(!isAudioMuted);
         }
@@ -280,6 +301,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             const videoTracks = localStream.getVideoTracks();
             videoTracks.forEach(track => {
                 track.enabled = !isVideoMuted;
+                console.log(`Video track ${track.id} enabled: ${track.enabled}`);
             });
             setIsVideoMuted(!isVideoMuted);
         }
@@ -301,6 +323,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
         const handleSignal = (data: { appointmentId: string; callerId: string; receiverId: string; signalData: SignalData }) => {
             console.log('Received signal:', data);
             if (peer && data.appointmentId === callDataRef.current?.appointmentId) {
+                console.log('Processing signal for peer:', data.signalData);
                 peer.peerConnection.signal(data.signalData);
             }
         };
