@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Peer, { SignalData } from 'simple-peer';
 import { useSession } from 'next-auth/react';
 import { IAppointment } from '@/types';
-import { useAppContext } from '@/lib/FirebaseContext';
 import useSocket from './useSocket';
+import { useAppContext } from '@/lib/FirebaseContext';
 
 interface PeerData {
     peerConnection: Peer.Instance;
     callerId: string;
     receiverId: string;
-    stream?: MediaStream;
+    stream?: MediaStream | null;
 }
 
 interface UseVideoChatReturn {
@@ -31,7 +31,7 @@ interface UseVideoChatReturn {
 
 export const useVideoChat = (): UseVideoChatReturn => {
     const { data: session } = useSession();
-    const { isConnected, isOnline, declineCall: contextDeclineCall, clearRinging } = useAppContext();
+    const { isConnected, isOnline: isOnlineUser, declineCall: contextDeclineCall, clearRinging } = useAppContext();
     const { socket } = useSocket();
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -155,26 +155,26 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const recipientId = session.user.role === 'patient' ? doctorId : patientId;
+        const recipientId = session.user?.id === patientId ? doctorId : session.user?.id === doctorId ? patientId : null;
         if (!recipientId) {
             setError('Invalid recipient: User is neither patient nor doctor');
             console.error('startVideoCall failed: User is not part of appointment', {
-                userId: session.user.id,
+                userId: session.user?.id,
                 patientId,
                 doctorId,
             });
             return;
         }
 
-        if (recipientId === session.user.id) {
+        if (recipientId === session.user?.id) {
             setError('Cannot call yourself');
-            console.error('startVideoCall failed: recipientId matches callerId', { recipientId, callerId: session.user.id });
+            console.error('startVideoCall failed: recipientId matches callerId', { recipientId, callerId: session.user?.id });
             return;
         }
 
-        const callerName = session.user.name || 'User';
+        const callerName = session.user?.name || 'User';
 
-        if (!isOnline(recipientId)) {
+        if (!isOnlineUser(recipientId)) {
             setError('Recipient is offline');
             console.error('startVideoCall failed: Recipient offline', recipientId);
             return;
@@ -187,18 +187,18 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const newPeer = createPeer(stream, true, session.user.id, recipientId);
-        setPeer({ peerConnection: newPeer, callerId: session.user.id, receiverId: recipientId });
+        const newPeer = createPeer(stream, true, session.user?.id, recipientId);
+        setPeer({ peerConnection: newPeer, callerId: session.user?.id, receiverId: recipientId });
         callDataRef.current = {
             appointmentId: appointment._id,
-            callerId: session.user.id,
+            callerId: session.user?.id,
             recipientId,
             callerName,
         };
 
         console.log('Emitting startVideoCall:', callDataRef.current);
         socket.emit('startVideoCall', callDataRef.current);
-    }, [isConnected, socket, session?.user?.id, session?.user?.role, session?.user?.name, isOnline, getMediaStream, createPeer]);
+    }, [isConnected, socket, session?.user?.id, session?.user?.name, isOnlineUser, getMediaStream, createPeer]);
 
     const acceptCall = useCallback(async () => {
         console.log('acceptCall initiated:', {
@@ -213,7 +213,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        if (callDataRef.current.callerId === session.user.id) {
+        if (callDataRef.current.callerId === session.user?.id) {
             console.error('acceptCall failed: Cannot accept own call', { callerId: callDataRef.current.callerId });
             return;
         }
@@ -225,14 +225,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const newPeer = createPeer(stream, false, callDataRef.current.callerId, session.user.id);
-        setPeer({ peerConnection: newPeer, callerId: callDataRef.current.callerId, receiverId: session.user.id });
+        const newPeer = createPeer(stream, false, callDataRef.current.callerId, session.user?.id);
+        setPeer({ peerConnection: newPeer, callerId: callDataRef.current.callerId, receiverId: session.user?.id });
 
         console.log('Emitting callAccepted:', callDataRef.current);
         socket.emit('callAccepted', {
             appointmentId: callDataRef.current.appointmentId,
             callerId: callDataRef.current.callerId,
-            recipientId: session.user.id,
+            recipientId: session.user?.id,
         });
     }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
@@ -242,12 +242,12 @@ export const useVideoChat = (): UseVideoChatReturn => {
             socket.emit('declineVideoCall', {
                 appointmentId: callDataRef.current.appointmentId,
                 callerId: callDataRef.current.callerId,
-                recipientId: session.user.id,
+                recipientId: session.user?.id,
             });
             contextDeclineCall(
                 callDataRef.current.appointmentId,
                 callDataRef.current.callerId,
-                session.user.id
+                session.user?.id
             );
             cleanup();
         }
@@ -293,7 +293,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const handleStartVideoCall = (data: { appointmentId: string; callerId: string; recipientId: string; callerName: string }) => {
             console.log('Received startVideoCall:', data);
-            if (data.recipientId === session?.user?.id) {
+            if (data.recipientId === session.user?.id) {
                 callDataRef.current = data;
             }
         };
@@ -307,14 +307,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const handleCallAccepted = (data: { appointmentId: string; callerId: string; recipientId: string }) => {
             console.log('Received callAccepted:', data);
-            if (data.appointmentId === callDataRef.current?.appointmentId && session?.user?.id === data.callerId) {
+            if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === data.callerId) {
                 setIsCallActive(true);
             }
         };
 
         const handleCallDeclined = (data: { appointmentId: string; recipientId: string }) => {
             console.log('Received callDeclined:', data);
-            if (data.appointmentId === callDataRef.current?.appointmentId && session?.user?.id === callDataRef.current?.callerId) {
+            if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === callDataRef.current?.callerId) {
                 cleanup();
             }
         };
