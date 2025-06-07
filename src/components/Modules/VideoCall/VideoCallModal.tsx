@@ -49,18 +49,31 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             remoteVideoRef.current.play().catch(err => console.error('Remote video play error:', err));
         }
 
-        // NEW: Log stream assignment status
         console.log('Stream assignment:', {
             localStreamId: localStream?.id,
             remoteStreamId: remoteStream?.id,
             hasLocalVideoRef: !!localVideoRef.current,
             hasRemoteVideoRef: !!remoteVideoRef.current,
         });
+        // NEW: Debug video elements
+        if (localVideoRef.current) {
+            console.log('Local video element:', {
+                srcObject: !!localVideoRef.current.srcObject,
+                readyState: localVideoRef.current.readyState,
+            });
+        }
+        if (remoteVideoRef.current) {
+            console.log('Remote video element:', {
+                srcObject: !!remoteVideoRef.current.srcObject,
+                readyState: remoteVideoRef.current.readyState,
+            });
+        }
     }, [localStream, remoteStream, isOpen]);
 
     if (!isOpen) {
         console.log('VideoCallModal not open');
-        return null;
+        // NEW: Debug return
+        return <div>Video Call Modal Closed</div>;
     }
 
     return (
