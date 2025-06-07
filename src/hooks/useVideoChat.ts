@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { IAppointment } from '@/types';
 import { useAppContext } from '@/lib/FirebaseContext';
 import useSocket from './useSocket';
-import { debugWebRTC } from '@/components/utils/debugWebRTC'; // NEW: Import debug utility
+import { debugWebRTC } from '@/components/utils/debugWebRTC';
 
 interface PeerData {
     peerConnection: Peer.Instance;
@@ -129,13 +129,13 @@ export const useVideoChat = (): UseVideoChatReturn => {
             if (socket && session?.user?.id && callDataRef.current) {
                 setTimeout(() => {
                     socket.emit('signal', {
-                        appointmentId: callDataRef?.current?.appointmentId,
+                        appointmentId: callDataRef.current?.appointmentId,
                         callerId,
                         receiverId,
                         signalData: data,
                     });
                     console.log('Retried signal emission:', { callerId, receiverId });
-                }, 200);
+                }, 500);
             }
         });
 
@@ -272,6 +272,11 @@ export const useVideoChat = (): UseVideoChatReturn => {
         console.log('Call accepted, setting isCallActive for receiver');
         // NEW: Force isCallActive
         setIsCallActive(true);
+        // NEW: Clear incoming call
+        if (socket && session?.user?.id) {
+            socket.emit('clearCallState', { userId: session.user.id });
+            console.log('Emitted clearCallState on accept');
+        }
     }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
     const declineCall = useCallback(() => {
@@ -359,7 +364,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
                 setTimeout(() => {
                     peer.peerConnection.signal(data.signalData);
                     console.log('Retried signal processing');
-                }, 200);
+                }, 500);
             }
         };
 
@@ -369,10 +374,15 @@ export const useVideoChat = (): UseVideoChatReturn => {
                 setIsCallActive(true);
             }
             console.log('Call accepted received for caller:', { isCallActive: true, userId: session.user?.id });
-            // NEW: Ensure isCallActive
+            // NEW: Force isCallActive
             if (data.appointmentId === callDataRef.current?.appointmentId) {
                 setIsCallActive(true);
                 console.log('Forced isCallActive on callAccepted');
+            }
+            // NEW: Clear call state
+            if (socket && session?.user?.id) {
+                socket.emit('clearCallState', { userId: session.user?.id });
+                console.log('Emitted clearCallState on callAccepted');
             }
         };
 
@@ -383,7 +393,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             }
             // NEW: Clear call state
             if (socket && session?.user?.id) {
-                socket.emit('clearCallState', { userId: session.user.id });
+                socket.emit('clearCallState', { userId: session.user?.id });
                 console.log('Emitted clearCallState on callDeclined');
             }
         };
@@ -400,7 +410,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             }
         };
 
-        // NEW: Handle clearCallState
         const handleClearCallState = ({ userId }: { userId: string }) => {
             if (userId === session.user?.id) {
                 callDataRef.current = null;

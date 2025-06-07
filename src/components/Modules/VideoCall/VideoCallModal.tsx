@@ -55,7 +55,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             hasLocalVideoRef: !!localVideoRef.current,
             hasRemoteVideoRef: !!remoteVideoRef.current,
         });
-        // NEW: Debug video elements
         if (localVideoRef.current) {
             console.log('Local video element:', {
                 srcObject: !!localVideoRef.current.srcObject,
@@ -68,11 +67,22 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                 readyState: remoteVideoRef.current.readyState,
             });
         }
+        // NEW: Force video play
+        if (localVideoRef.current && localStream) {
+            setTimeout(() => {
+                localVideoRef.current?.play().catch(err => console.error('Forced local video play error:', err));
+                console.log('Forced local video play');
+            }, 100);
+        }
+        // NEW: Log ref status
+        console.log('Video refs status:', {
+            localRefAssigned: !!localVideoRef.current,
+            remoteRefAssigned: !!remoteVideoRef.current,
+        });
     }, [localStream, remoteStream, isOpen]);
 
     if (!isOpen) {
         console.log('VideoCallModal not open');
-        // NEW: Debug return
         return <div>Video Call Modal Closed</div>;
     }
 

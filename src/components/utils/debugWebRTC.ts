@@ -3,11 +3,9 @@
 
 import Peer from 'simple-peer';
 
-// Debug WebRTC peer connection events
 export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; receiverId: string; appointmentId: string }) => {
     const { callerId, receiverId, appointmentId } = context;
 
-    // Log ICE connection state changes
     const rtcPeerConnection: RTCPeerConnection = (peer as any)._pc as RTCPeerConnection;
     rtcPeerConnection.oniceconnectionstatechange = () => {
         console.log('WebRTC ICE connection state:', {
@@ -16,9 +14,12 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
             receiverId,
             appointmentId,
         });
+        // NEW: Log ICE failures
+        if (rtcPeerConnection.iceConnectionState === 'failed') {
+            console.error('WebRTC ICE connection failed:', { callerId, receiverId, appointmentId });
+        }
     };
 
-    // Log ICE candidate events
     rtcPeerConnection.onicecandidate = (event) => {
         console.log('WebRTC ICE candidate:', {
             candidate: event.candidate,
@@ -28,7 +29,6 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
         });
     };
 
-    // Log signaling state
     rtcPeerConnection.onsignalingstatechange = () => {
         console.log('WebRTC signaling state:', {
             state: rtcPeerConnection.signalingState,
@@ -38,7 +38,6 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
         });
     };
 
-    // Log stream additions
     peer.on('stream', (stream: MediaStream) => {
         console.log('WebRTC stream received:', {
             streamId: stream.id,
@@ -48,7 +47,6 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
         });
     });
 
-    // Log errors
     peer.on('error', (err: Error) => {
         console.error('WebRTC peer error:', {
             error: err.message,
