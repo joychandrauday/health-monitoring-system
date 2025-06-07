@@ -6,27 +6,17 @@ import { MessageSquare, Video } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { IAppointment } from "@/types";
-import { useSocketContext } from "@/lib/SocketContext";
-import { CallRingingModal } from "@/components/Modules/VideoCall/CallRingingModal";
-import { VideoCallModal } from "@/components/Modules/VideoCall/VideoCallModal";
 import { useVideoChat } from "@/hooks/useVideoChat";
+import { useAppContext } from "@/lib/FirebaseContext";
+
 export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = ({ appointment }) => {
     const { data: session } = useSession();
-    const { isConnected, incomingCall, callRinging, isOnline } = useSocketContext();
+    const { isConnected, incomingCall, callRinging, isOnline } = useAppContext();
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [isOnlineUser, setIsOnlineUser] = useState(false);
     const {
-        localStream,
-        remoteStream,
         isCallActive,
         startVideoCall,
-        acceptCall,
-        declineCall,
-        hangUp,
-        toggleAudioMute,
-        toggleVideoMute,
-        isAudioMuted,
-        isVideoMuted,
         error,
     } = useVideoChat();
 
@@ -38,6 +28,10 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
             setIsOnlineUser(false);
         }
     }, [isConnected, session?.user?.id, isOnline]);
+
+    useEffect(() => {
+        console.log('TeleconsultationActions: callRinging:', callRinging, 'incomingCall:', incomingCall);
+    }, [callRinging, incomingCall]);
 
     const handleOpenChat = () => {
         setIsChatOpen(true);
@@ -116,37 +110,6 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
                     isOpen={isChatOpen}
                     onClose={handleCloseChat}
                     className="z-50"
-                />
-            )}
-
-            {incomingCall && (
-                <VideoCallModal
-                    isOpen={!!incomingCall}
-                    callerName={incomingCall.callerName}
-                    onAccept={acceptCall}
-                    onDecline={declineCall}
-                    localStream={localStream}
-                    remoteStream={remoteStream}
-                    onHangUp={hangUp}
-                    toggleAudioMute={toggleAudioMute}
-                    toggleVideoMute={toggleVideoMute}
-                    isAudioMuted={isAudioMuted}
-                    isVideoMuted={isVideoMuted}
-                />
-            )}
-
-            {callRinging && (
-                <CallRingingModal
-                    isOpen={!!callRinging}
-                    recipientId={callRinging.recipientId}
-                    recipientName={session?.user?.role === 'patient' ? doctorName : patientName}
-                    onCancel={declineCall}
-                    isDeclined={false}
-                    localStream={localStream}
-                    toggleAudioMute={toggleAudioMute}
-                    toggleVideoMute={toggleVideoMute}
-                    isAudioMuted={isAudioMuted}
-                    isVideoMuted={isVideoMuted}
                 />
             )}
         </div>

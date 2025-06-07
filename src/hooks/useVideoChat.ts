@@ -1,9 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
+'use client';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Peer, { SignalData } from 'simple-peer';
 import { useSession } from 'next-auth/react';
-import { useSocketContext } from '@/lib/SocketContext';
 import { IAppointment } from '@/types';
+import { useAppContext } from '@/lib/FirebaseContext';
+import useSocket from './useSocket';
 
 interface PeerData {
     peerConnection: Peer.Instance;
@@ -29,7 +32,8 @@ interface UseVideoChatReturn {
 
 export const useVideoChat = (): UseVideoChatReturn => {
     const { data: session } = useSession();
-    const { socket, isConnected, isOnline, declineCall: socketDeclineCall, clearRinging } = useSocketContext();
+    const { isConnected, isOnline, declineCall: contextDeclineCall, clearRinging } = useAppContext();
+    const { socket } = useSocket();
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [isCallActive, setIsCallActive] = useState(false);
@@ -45,24 +49,16 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return localStream;
         }
         try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
-                video: {
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 360, ideal: 720, max: 1080 },
-                    frameRate: { min: 16, ideal: 30, max: 30 },
-                    facingMode: videoDevices.length > 0 ? facingMode : undefined,
-                },
+                video: { facingMode },
             });
             console.log('Media stream acquired:', stream.id);
             setLocalStream(stream);
             return stream;
         } catch (err) {
             console.error('Failed to get media stream:', err);
-            setError('Failed to access camera and microphone');
-            setLocalStream(null);
+            setError('Failed to access camera/microphone');
             return null;
         }
     }, [localStream]);
@@ -71,7 +67,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
         if (stream) {
             console.log('Stopping media stream:', stream.id);
             stream.getTracks().forEach(track => {
-                console.log(`Stopping track: ${track.kind} (id: ${track.id}, enabled: ${track.enabled})`);
                 track.stop();
                 track.enabled = false;
             });
@@ -93,18 +88,12 @@ export const useVideoChat = (): UseVideoChatReturn => {
         setIsVideoMuted(false);
         setError(null);
         callDataRef.current = null;
-    }, [localStream, remoteStream, peer, stopMediaStream]);
+        clearRinging();
+    }, [localStream, remoteStream, peer, stopMediaStream, clearRinging]);
 
     const createPeer = useCallback((stream: MediaStream, initiator: boolean, callerId: string, receiverId: string) => {
         const iceServers: RTCIceServer[] = [
-            {
-                urls: [
-                    'stun:stun.l.google.com:19302',
-                    'stun:stun1.l.google.com:19302',
-                    'stun:stun2.l.google.com:19302',
-                    'stun:stun3.l.google.com:19302',
-                ],
-            },
+            { urls: ['stun:stun.l.google.com:19302'] },
         ];
         const peerConnection = new Peer({
             initiator,
@@ -114,10 +103,10 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         peerConnection.on('signal', (data: SignalData) => {
-            if (socket && session?.user?.id) {
-                console.log('Emitting signal:', { callerId, receiverId, signalData: data });
+            if (socket && session?.user?.id && callDataRef.current) {
+                console.log('Emitting signal:', { callerId, receiverId, appointmentId: callDataRef.current.appointmentId });
                 socket.emit('signal', {
-                    appointmentId: callDataRef.current?.appointmentId,
+                    appointmentId: callDataRef.current.appointmentId,
                     callerId,
                     receiverId,
                     signalData: data,
@@ -142,20 +131,19 @@ export const useVideoChat = (): UseVideoChatReturn => {
             cleanup();
         });
 
-        const rtcPeerConnection: RTCPeerConnection = (peerConnection as any)._pc as RTCPeerConnection;
-        rtcPeerConnection.oniceconnectionstatechange = () => {
-            console.log('ICE connection state:', rtcPeerConnection.iceConnectionState);
-            if (rtcPeerConnection.iceConnectionState === 'disconnected' || rtcPeerConnection.iceConnectionState === 'failed') {
-                cleanup();
-            }
-        };
-
         return peerConnection;
-    }, [socket, session?.user?.id, cleanup]);
+    }, [session?.user?.id, socket, cleanup]);
 
     const startVideoCall = useCallback(async (appointment: IAppointment) => {
+        console.log('startVideoCall initiated:', {
+            appointmentId: appointment._id,
+            isConnected,
+            hasSocket: !!socket,
+            userId: session?.user?.id,
+        });
         if (!isConnected || !socket || !session?.user?.id) {
-            setError('Not connected to the server');
+            setError('Not connected to server');
+            console.error('startVideoCall failed: No socket or user ID');
             return;
         }
 
@@ -165,13 +153,15 @@ export const useVideoChat = (): UseVideoChatReturn => {
         const callerName = session.user.name || 'User';
 
         if (!isOnline(recipientId)) {
-            setError('Cannot initiate call: The other user is offline');
+            setError('Recipient is offline');
+            console.error('startVideoCall failed: Recipient offline', recipientId);
             return;
         }
 
         const stream = await getMediaStream();
         if (!stream) {
-            setError('Failed to access camera and microphone');
+            setError('Failed to access camera/microphone');
+            console.error('startVideoCall failed: No media stream');
             return;
         }
 
@@ -184,48 +174,66 @@ export const useVideoChat = (): UseVideoChatReturn => {
             callerName,
         };
 
+        console.log('Emitting startVideoCall:', callDataRef.current);
         socket.emit('startVideoCall', callDataRef.current);
-        console.log('Emitted startVideoCall:', callDataRef.current);
     }, [isConnected, socket, session?.user?.id, session?.user?.name, isOnline, getMediaStream, createPeer]);
 
     const acceptCall = useCallback(async () => {
+        console.log('acceptCall initiated:', {
+            isConnected,
+            hasSocket: !!socket,
+            userId: session?.user?.id,
+            callData: callDataRef.current,
+        });
         if (!isConnected || !socket || !session?.user?.id || !callDataRef.current) {
             setError('Cannot accept call: Not connected or missing call data');
+            console.error('acceptCall failed: No connection or call data');
             return;
         }
 
         const stream = await getMediaStream();
         if (!stream) {
-            setError('Failed to access camera and microphone');
+            setError('Failed to access camera/microphone');
+            console.error('acceptCall failed: No media stream');
             return;
         }
 
         const newPeer = createPeer(stream, false, callDataRef.current.callerId, session.user.id);
         setPeer({ peerConnection: newPeer, callerId: callDataRef.current.callerId, receiverId: session.user.id });
-        setIsCallActive(true);
-        clearRinging();
-    }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer, clearRinging]);
+
+        console.log('Emitting callAccepted:', callDataRef.current);
+        socket.emit('callAccepted', {
+            appointmentId: callDataRef.current.appointmentId,
+            callerId: callDataRef.current.callerId,
+            recipientId: session.user.id,
+        });
+    }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
     const declineCall = useCallback(() => {
+        console.log('declineCall initiated:', callDataRef.current);
         if (callDataRef.current && socket && session?.user?.id) {
-            socketDeclineCall(
+            socket.emit('declineVideoCall', {
+                appointmentId: callDataRef.current.appointmentId,
+                callerId: callDataRef.current.callerId,
+                recipientId: session.user.id,
+            });
+            contextDeclineCall(
                 callDataRef.current.appointmentId,
                 callDataRef.current.callerId,
                 session.user.id
             );
-            console.log('Declining call:', callDataRef.current);
             cleanup();
         }
-    }, [socket, session?.user?.id, socketDeclineCall, cleanup]);
+    }, [socket, session?.user?.id, contextDeclineCall, cleanup]);
 
     const hangUp = useCallback(() => {
+        console.log('hangUp initiated:', callDataRef.current);
         if (callDataRef.current && socket && session?.user?.id) {
             socket.emit('hangUp', {
                 appointmentId: callDataRef.current.appointmentId,
                 callerId: callDataRef.current.callerId,
                 recipientId: callDataRef.current.recipientId,
             });
-            console.log('Emitted hangUp:', callDataRef.current);
         }
         cleanup();
     }, [socket, session?.user?.id, cleanup]);
@@ -235,7 +243,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             const audioTracks = localStream.getAudioTracks();
             audioTracks.forEach(track => {
                 track.enabled = !isAudioMuted;
-                console.log(`Audio track ${track.id} enabled: ${track.enabled}`);
             });
             setIsAudioMuted(!isAudioMuted);
         }
@@ -246,48 +253,62 @@ export const useVideoChat = (): UseVideoChatReturn => {
             const videoTracks = localStream.getVideoTracks();
             videoTracks.forEach(track => {
                 track.enabled = !isVideoMuted;
-                console.log(`Video track ${track.id} enabled: ${track.enabled}`);
             });
             setIsVideoMuted(!isVideoMuted);
         }
     }, [localStream, isVideoMuted]);
 
     useEffect(() => {
-        if (!socket || !session?.user?.id) return;
+        if (!socket || !session?.user?.id) {
+            console.log('Skipping socket listeners: No socket or user ID');
+            return;
+        }
 
-        socket.on('signal', (data: { callerId: string; receiverId: string; signalData: SignalData }) => {
-            if (data.receiverId === session?.user?.id && peer) {
-                console.log('Received signal for peer:', data);
+        const handleStartVideoCall = (data: { appointmentId: string; callerId: string; recipientId: string; callerName: string }) => {
+            console.log('Received startVideoCall:', data);
+            callDataRef.current = data;
+        };
+
+        const handleSignal = (data: { appointmentId: string; callerId: string; receiverId: string; signalData: SignalData }) => {
+            console.log('Received signal:', data);
+            if (peer && data.appointmentId === callDataRef.current?.appointmentId) {
                 peer.peerConnection.signal(data.signalData);
             }
-        });
+        };
 
-        socket.on('receiveVideoCall', (data: { callerId: string; callerName: string; appointmentId: string; recipientId: string }) => {
-            if (data.recipientId === session?.user?.id) {
-                console.log('Received incoming call:', data);
-                callDataRef.current = data;
+        const handleCallAccepted = (data: { appointmentId: string; callerId: string; recipientId: string }) => {
+            console.log('Received callAccepted:', data);
+            if (data.appointmentId === callDataRef.current?.appointmentId && session?.user?.id === data.callerId) {
+                setIsCallActive(true);
             }
-        });
+        };
 
-        socket.on('callDeclined', (data: { appointmentId: string; recipientId: string }) => {
-            if (data.appointmentId === callDataRef.current?.appointmentId) {
-                console.log('Call declined:', data);
+        const handleCallDeclined = (data: { appointmentId: string; recipientId: string }) => {
+            console.log('Received callDeclined:', data);
+            if (data.appointmentId === callDataRef.current?.appointmentId && session?.user?.id === callDataRef.current?.callerId) {
                 cleanup();
             }
-        });
+        };
 
-        socket.on('hangUp', (data: { appointmentId: string }) => {
+        const handleHangUp = (data: { appointmentId: string }) => {
+            console.log('Received hangUp:', data);
             if (data.appointmentId === callDataRef.current?.appointmentId) {
-                console.log('Received hangUp:', data);
                 cleanup();
             }
-        });
+        };
+
+        socket.on('startVideoCall', handleStartVideoCall);
+        socket.on('signal', handleSignal);
+        socket.on('callAccepted', handleCallAccepted);
+        socket.on('callDeclined', handleCallDeclined);
+        socket.on('hangUp', handleHangUp);
 
         return () => {
-            socket.off('signal');
-            socket.off('receiveVideoCall');
-            socket.off('callDeclined');
-            socket.off('hangUp');
+            socket.off('startVideoCall', handleStartVideoCall);
+            socket.off('signal', handleSignal);
+            socket.off('callAccepted', handleCallAccepted);
+            socket.off('callDeclined', handleCallDeclined);
+            socket.off('hangUp', handleHangUp);
         };
     }, [socket, session?.user?.id, peer, cleanup]);
 

@@ -9,6 +9,7 @@ interface CallRingingModalProps {
     isOpen: boolean;
     recipientId: string;
     recipientName: string;
+    onAccept: () => void;
     onCancel: () => void;
     isDeclined: boolean;
     localStream: MediaStream | null;
@@ -16,11 +17,14 @@ interface CallRingingModalProps {
     toggleVideoMute: () => void;
     isAudioMuted: boolean;
     isVideoMuted: boolean;
+    isReceiver: boolean;
 }
 
 export const CallRingingModal: React.FC<CallRingingModalProps> = ({
     isOpen,
+    recipientId,
     recipientName,
+    onAccept,
     onCancel,
     isDeclined,
     localStream,
@@ -28,18 +32,27 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
     toggleVideoMute,
     isAudioMuted,
     isVideoMuted,
+    isReceiver,
 }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
+        console.log('CallRingingModal props:', {
+            isOpen,
+            recipientId,
+            recipientName,
+            isDeclined,
+            isReceiver,
+            hasLocalStream: !!localStream,
+        });
         if (isOpen && !isDeclined && audioRef.current) {
             audioRef.current.loop = true;
             audioRef.current.play().catch((error) => {
                 console.error('Failed to play ringtone:', error);
             });
         }
-        if (videoRef.current && localStream && localStream.getVideoTracks().length > 0) {
+        if (videoRef.current && localStream) {
             videoRef.current.srcObject = localStream;
             videoRef.current.play().catch((error) => {
                 console.error('Failed to play video stream:', error);
@@ -50,7 +63,7 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
-                console.log('Ringtone paused and reset');
+                console.log('Ringtone paused');
             }
         };
     }, [isOpen, isDeclined, localStream]);
@@ -68,12 +81,16 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
                         </div>
                     </div>
                     <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                        {isDeclined ? "Call Declined" : "Calling..."}
+                        {isDeclined ? 'Call Declined' : isReceiver ? 'Incoming Call' : 'Calling...'}
                     </h2>
                     <p className="text-gray-600 mb-6">
-                        {isDeclined ? `The call was declined by ${recipientName}.` : `Calling ${recipientName}...`}
+                        {isDeclined
+                            ? `Call declined by ${recipientName}`
+                            : isReceiver
+                                ? `Incoming call from ${recipientName}`
+                                : `Calling ${recipientName}...`}
                     </p>
-                    {localStream && localStream.getVideoTracks().length > 0 ? (
+                    {localStream ? (
                         <div className="relative w-full max-w-xs mb-4">
                             <video
                                 ref={videoRef}
@@ -108,41 +125,55 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
                             <p className="text-gray-600">No video available</p>
                         </div>
                     )}
-                    {!isDeclined && (
-                        <Button
-                            variant="outline"
-                            className="border-red-600 text-red-600 hover:bg-red-100 px-4 py-2"
-                            onClick={() => {
-                                console.log('Cancel Call button clicked');
-                                onCancel();
-                                if (audioRef.current) {
-                                    audioRef.current.pause();
-                                    console.log('Ringtone paused in Cancel Call');
-                                }
-                            }}
-                        >
-                            Cancel Call
-                        </Button>
-                    )}
-                    {isDeclined && (
+                    {isDeclined ? (
                         <Button
                             variant="outline"
                             className="border-gray-600 text-gray-800 hover:bg-gray-100 px-4 py-2"
                             onClick={() => {
                                 console.log('Close button clicked');
                                 onCancel();
-                                if (audioRef.current) {
-                                    audioRef.current.pause();
-                                    console.log('Ringtone paused in Close');
-                                }
                             }}
                         >
                             Close
                         </Button>
+                    ) : isReceiver ? (
+                        <div className="flex gap-4">
+                            <Button
+                                variant="default"
+                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2"
+                                onClick={() => {
+                                    console.log('Accept Call button clicked');
+                                    onAccept();
+                                }}
+                            >
+                                Accept
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="border-red-600 text-red-600 hover:bg-red-100 px-4 py-2"
+                                onClick={() => {
+                                    console.log('Decline Call button clicked');
+                                    onCancel();
+                                }}
+                            >
+                                Decline
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            className="border-red-600 text-red-600 hover:bg-red-100 px-4 py-2"
+                            onClick={() => {
+                                console.log('Cancel Call button clicked');
+                                onCancel();
+                            }}
+                        >
+                            Cancel Call
+                        </Button>
                     )}
                 </div>
             </div>
-            <audio ref={audioRef} src="/ringtone.mp3" />
+            <audio ref={audioRef} src="/assets/ringtone.mp3" />
         </div>
     );
 };

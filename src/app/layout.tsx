@@ -7,8 +7,9 @@ import StoreProvider from "@/lib/storeProvider";
 import ChatIconModal from "@/components/Modules/Chat/ChatIconModal";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/utils/authOptions";
-import { SocketProvider } from "@/lib/SocketContext";
-import { GlobalVideoCallHandler } from "@/lib/GlobalVideoCallHandler";
+import { FirebaseProvider } from "@/lib/FirebaseContext";
+import { VideoCallModalManager } from "@/components/Modules/VideoCall/VideoCallModalManager";
+import { VideoCallProvider } from "@/lib/VideoCallContext";
 
 export const metadata: Metadata = {
   title: "Joy Chandra Uday | Full Stack Developer",
@@ -26,9 +27,8 @@ export default async function RootLayout({
       <head />
       <body>
         <SessionProviders>
-          <SocketProvider>
-            <GlobalVideoCallHandler>
-
+          <FirebaseProvider>
+            <VideoCallProvider>
               <StoreProvider>
                 <ThemeProvider
                   attribute="class"
@@ -43,11 +43,12 @@ export default async function RootLayout({
                       <ChatIconModal />
                     }
                   </div>
+                  <VideoCallModalManager />
                   <Toaster />
                 </ThemeProvider>
               </StoreProvider>
-            </GlobalVideoCallHandler>
-          </SocketProvider>
+            </VideoCallProvider>
+          </FirebaseProvider>
         </SessionProviders>
       </body>
     </html >
