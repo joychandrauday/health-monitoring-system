@@ -89,7 +89,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
         setError(null);
         callDataRef.current = null;
         clearRinging();
-        // NEW: Emit clear call state
         if (socket && session?.user?.id) {
             socket.emit('clearCallState', { userId: session.user.id });
             console.log('Emitted clearCallState during cleanup');
@@ -125,7 +124,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
                     signalData: data,
                 });
             }
-            // NEW: Retry signal emission
+            // NEW: Extended signal retry
             if (socket && session?.user?.id && callDataRef.current) {
                 setTimeout(() => {
                     socket.emit('signal', {
@@ -135,7 +134,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
                         signalData: data,
                     });
                     console.log('Retried signal emission:', { callerId, receiverId });
-                }, 500);
+                }, 1000);
             }
         });
 
@@ -270,13 +269,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         console.log('Call accepted, setting isCallActive for receiver');
-        // NEW: Force isCallActive
         setIsCallActive(true);
-        // NEW: Clear incoming call
-        if (socket && session?.user?.id) {
-            socket.emit('clearCallState', { userId: session.user.id });
-            console.log('Emitted clearCallState on accept');
-        }
+        // NEW: Delay clearCallState
+        setTimeout(() => {
+            if (socket && session?.user?.id) {
+                socket.emit('clearCallState', { userId: session.user.id });
+                console.log('Delayed clearCallState on accept');
+            }
+        }, 2000);
     }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
     const declineCall = useCallback(() => {
@@ -294,7 +294,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             );
             cleanup();
         }
-        // NEW: Clear call state
         if (socket && session?.user?.id) {
             socket.emit('clearCallState', { userId: session.user.id });
             console.log('Emitted clearCallState on decline');
@@ -311,7 +310,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             });
         }
         cleanup();
-        // NEW: Clear call state
         if (socket && session?.user?.id) {
             socket.emit('clearCallState', { userId: session.user.id });
             console.log('Emitted clearCallState on hangUp');
@@ -359,12 +357,12 @@ export const useVideoChat = (): UseVideoChatReturn => {
                 console.log('Processing signal for peer:', data.signalData);
                 peer.peerConnection.signal(data.signalData);
             }
-            // NEW: Retry signal processing
+            // NEW: Extended signal retry
             if (peer && data.appointmentId === callDataRef.current?.appointmentId) {
                 setTimeout(() => {
                     peer.peerConnection.signal(data.signalData);
                     console.log('Retried signal processing');
-                }, 500);
+                }, 1000);
             }
         };
 
@@ -374,15 +372,17 @@ export const useVideoChat = (): UseVideoChatReturn => {
                 setIsCallActive(true);
             }
             console.log('Call accepted received for caller:', { isCallActive: true, userId: session.user?.id });
-            // NEW: Force isCallActive
-            if (data.appointmentId === callDataRef.current?.appointmentId) {
+            // NEW: Force isCallActive for caller
+            if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === data.callerId) {
                 setIsCallActive(true);
-                console.log('Forced isCallActive on callAccepted');
+                console.log('Forced isCallActive for caller on callAccepted');
             }
-            // NEW: Clear call state
-            if (socket && session?.user?.id) {
-                socket.emit('clearCallState', { userId: session.user?.id });
-                console.log('Emitted clearCallState on callAccepted');
+            // NEW: Delay clearCallState for caller
+            if (socket && session?.user?.id && session.user?.id === data.callerId) {
+                setTimeout(() => {
+                    socket.emit('clearCallState', { userId: session.user?.id });
+                    console.log('Delayed clearCallState for caller on callAccepted');
+                }, 2000);
             }
         };
 
@@ -391,7 +391,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === callDataRef.current?.callerId) {
                 cleanup();
             }
-            // NEW: Clear call state
             if (socket && session?.user?.id) {
                 socket.emit('clearCallState', { userId: session.user?.id });
                 console.log('Emitted clearCallState on callDeclined');
@@ -403,7 +402,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
             if (data.appointmentId === callDataRef.current?.appointmentId) {
                 cleanup();
             }
-            // NEW: Clear call state
             if (socket && session?.user?.id) {
                 socket.emit('clearCallState', { userId: session.user.id });
                 console.log('Emitted clearCallState on hangUp');

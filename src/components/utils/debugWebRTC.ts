@@ -14,7 +14,6 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
             receiverId,
             appointmentId,
         });
-        // NEW: Log ICE failures
         if (rtcPeerConnection.iceConnectionState === 'failed') {
             console.error('WebRTC ICE connection failed:', { callerId, receiverId, appointmentId });
         }
@@ -50,6 +49,16 @@ export const debugWebRTC = (peer: Peer.Instance, context: { callerId: string; re
     peer.on('error', (err: Error) => {
         console.error('WebRTC peer error:', {
             error: err.message,
+            callerId,
+            receiverId,
+            appointmentId,
+        });
+    });
+
+    // NEW: Debug signal data
+    peer.on('signal', (data: any) => {
+        console.log('WebRTC signal debug:', {
+            signalData: data,
             callerId,
             receiverId,
             appointmentId,

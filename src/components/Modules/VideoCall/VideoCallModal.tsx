@@ -74,11 +74,12 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                 console.log('Forced local video play');
             }, 100);
         }
-        // NEW: Log ref status
-        console.log('Video refs status:', {
-            localRefAssigned: !!localVideoRef.current,
-            remoteRefAssigned: !!remoteVideoRef.current,
-        });
+        if (remoteVideoRef.current && remoteStream) {
+            setTimeout(() => {
+                remoteVideoRef.current?.play().catch(err => console.error('Forced remote video play error:', err));
+                console.log('Forced remote video play');
+            }, 100);
+        }
     }, [localStream, remoteStream, isOpen]);
 
     if (!isOpen) {
@@ -90,7 +91,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
             <div className="relative w-full max-w-4xl h-[80vh] bg-gray-900 rounded-lg overflow-hidden flex flex-col">
                 <div className="flex-1 grid grid-cols-2 gap-2 p-2">
-                    {/* Remote Video */}
                     <div className="relative bg-gray-800 rounded-lg">
                         {remoteStream ? (
                             <video
@@ -105,7 +105,6 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
                             </div>
                         )}
                     </div>
-                    {/* Local Video */}
                     <div className="relative bg-gray-800 rounded-lg">
                         {localStream ? (
                             <video

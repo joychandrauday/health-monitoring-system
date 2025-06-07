@@ -7,7 +7,7 @@ import { useAppContext } from '@/lib/FirebaseContext';
 import { useVideoChat } from '@/hooks/useVideoChat';
 import { useVideoCallContext } from '@/lib/VideoCallContext';
 import { CallRingingModal } from './CallRingingModal';
-import { VideoCallModal } from './VideoCallModal';
+import VideoCallModalWrapper from './VideoCallModalWrapper';
 
 export const VideoCallModalManager: React.FC = () => {
     const { data: session } = useSession();
@@ -22,7 +22,6 @@ export const VideoCallModalManager: React.FC = () => {
         isVideoMuted,
         acceptCall,
         declineCall,
-        hangUp,
         isCallActive,
     } = useVideoChat();
     const [isRingingModalOpen, setIsRingingModalOpen] = useState(false);
@@ -145,17 +144,7 @@ export const VideoCallModalManager: React.FC = () => {
                 isVideoMuted={isVideoMuted}
                 isReceiver={isReceiver}
             />
-            <VideoCallModal
-                isOpen={isVideoModalOpen && isCallActive}
-                localStream={localStream}
-                remoteStream={remoteStream}
-                toggleAudioMute={toggleAudioMute}
-                toggleVideoMute={toggleVideoMute}
-                isAudioMuted={isAudioMuted}
-                isVideoMuted={isVideoMuted}
-                onHangUp={hangUp}
-                callerName={callRinging?.callerName || incomingCall?.callerName || 'Unknown'}
-            />
+            <VideoCallModalWrapper />
         </>
     );
 };
