@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -140,6 +139,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             isConnected,
             hasSocket: !!socket,
             userId: session?.user?.id,
+            appointmentData: { patientId: appointment.patientId, doctorId: appointment.doctorId },
         });
         if (!isConnected || !socket || !session?.user?.id) {
             setError('Not connected to server');
@@ -147,9 +147,31 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const patientId = typeof appointment.patientId === 'string' ? appointment.patientId : appointment.patientId._id;
-        const doctorId = typeof appointment.doctorId === 'string' ? appointment.doctorId : appointment.doctorId._id;
-        const recipientId = session.user.id === patientId ? doctorId : patientId;
+        const patientId = typeof appointment.patientId === 'string' ? appointment.patientId : appointment.patientId?._id;
+        const doctorId = typeof appointment.doctorId === 'string' ? appointment.doctorId : appointment.doctorId?._id;
+        if (!patientId || !doctorId) {
+            setError('Invalid appointment data: Missing patient or doctor ID');
+            console.error('startVideoCall failed: Invalid patientId or doctorId', { patientId, doctorId });
+            return;
+        }
+
+        const recipientId = session.user.role === 'patient' ? doctorId : patientId;
+        if (!recipientId) {
+            setError('Invalid recipient: User is neither patient nor doctor');
+            console.error('startVideoCall failed: User is not part of appointment', {
+                userId: session.user.id,
+                patientId,
+                doctorId,
+            });
+            return;
+        }
+
+        if (recipientId === session.user.id) {
+            setError('Cannot call yourself');
+            console.error('startVideoCall failed: recipientId matches callerId', { recipientId, callerId: session.user.id });
+            return;
+        }
+
         const callerName = session.user.name || 'User';
 
         if (!isOnline(recipientId)) {
@@ -176,7 +198,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         console.log('Emitting startVideoCall:', callDataRef.current);
         socket.emit('startVideoCall', callDataRef.current);
-    }, [isConnected, socket, session?.user?.id, session?.user?.name, isOnline, getMediaStream, createPeer]);
+    }, [isConnected, socket, session?.user?.id, session?.user?.role, session?.user?.name, isOnline, getMediaStream, createPeer]);
 
     const acceptCall = useCallback(async () => {
         console.log('acceptCall initiated:', {
@@ -188,6 +210,11 @@ export const useVideoChat = (): UseVideoChatReturn => {
         if (!isConnected || !socket || !session?.user?.id || !callDataRef.current) {
             setError('Cannot accept call: Not connected or missing call data');
             console.error('acceptCall failed: No connection or call data');
+            return;
+        }
+
+        if (callDataRef.current.callerId === session.user.id) {
+            console.error('acceptCall failed: Cannot accept own call', { callerId: callDataRef.current.callerId });
             return;
         }
 
@@ -266,7 +293,9 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const handleStartVideoCall = (data: { appointmentId: string; callerId: string; recipientId: string; callerName: string }) => {
             console.log('Received startVideoCall:', data);
-            callDataRef.current = data;
+            if (data.recipientId === session?.user?.id) {
+                callDataRef.current = data;
+            }
         };
 
         const handleSignal = (data: { appointmentId: string; callerId: string; receiverId: string; signalData: SignalData }) => {
