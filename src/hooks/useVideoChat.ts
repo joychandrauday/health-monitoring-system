@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -7,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { IAppointment } from '@/types';
 import { useAppContext } from '@/lib/FirebaseContext';
 import useSocket from './useSocket';
+import { debugWebRTC } from '@/components/utils/debugWebRTC';
 
 interface PeerData {
     peerConnection: Peer.Instance;
@@ -110,9 +110,9 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         peerConnection.on('signal', (data: SignalData) => {
-            console.log('Peer signal generated:', { callerId, receiverId, signalData: data });
+            console.log('Peer signal generated:', { callerId, receiverId, signalData: data }); // EXISTING
             if (socket && session?.user?.id && callDataRef.current) {
-                console.log('Emitting signal:', { callerId, receiverId, appointmentId: callDataRef.current.appointmentId });
+                console.log('Emitting signal:', { callerId, receiverId, appointmentId: callDataRef.current.appointmentId }); // EXISTING
                 socket.emit('signal', {
                     appointmentId: callDataRef.current.appointmentId,
                     callerId,
@@ -123,31 +123,30 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         peerConnection.on('stream', (stream: MediaStream) => {
-            console.log('Received remote stream:', stream.id);
+            console.log('Received remote stream:', stream.id); // EXISTING
             setRemoteStream(stream);
             setIsCallActive(true);
         });
 
         peerConnection.on('error', (err: Error) => {
-            console.error('Peer error:', err);
+            console.error('Peer error:', err); // EXISTING
             setError('Peer connection error');
             cleanup();
         });
 
         peerConnection.on('close', () => {
-            console.log('Peer connection closed');
+            console.log('Peer connection closed'); // EXISTING
             cleanup();
         });
 
-        // Log ICE connection state
-        const rtcPeerConnection: RTCPeerConnection = (peerConnection as any)._pc as RTCPeerConnection;
-        rtcPeerConnection.oniceconnectionstatechange = () => {
-            console.log('ICE connection state:', rtcPeerConnection.iceConnectionState);
-            if (rtcPeerConnection.iceConnectionState === 'failed') {
-                setError('ICE connection failed');
-                cleanup();
-            }
-        };
+        // NEW: Attach WebRTC debugging
+        if (callDataRef.current) {
+            debugWebRTC(peerConnection, {
+                callerId,
+                receiverId,
+                appointmentId: callDataRef.current.appointmentId,
+            });
+        }
 
         return peerConnection;
     }, [session?.user?.id, socket, cleanup]);
@@ -174,24 +173,24 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const recipientId = session.user?.id === patientId ? doctorId : session.user?.id === doctorId ? patientId : null;
+        const recipientId = session.user.id === patientId ? doctorId : session.user.id === doctorId ? patientId : null;
         if (!recipientId) {
             setError('Invalid recipient: User is neither patient nor doctor');
             console.error('startVideoCall failed: User is not part of appointment', {
-                userId: session.user?.id,
+                userId: session.user.id,
                 patientId,
                 doctorId,
             });
             return;
         }
 
-        if (recipientId === session.user?.id) {
+        if (recipientId === session.user.id) {
             setError('Cannot call yourself');
-            console.error('startVideoCall failed: recipientId matches callerId', { recipientId, callerId: session.user?.id });
+            console.error('startVideoCall failed: recipientId matches callerId', { recipientId, callerId: session.user.id });
             return;
         }
 
-        const callerName = session.user?.name || 'User';
+        const callerName = session.user.name || 'User';
 
         if (!isOnlineUser(recipientId)) {
             setError('Recipient is offline');
@@ -206,11 +205,11 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const newPeer = createPeer(stream, true, session.user?.id, recipientId);
-        setPeer({ peerConnection: newPeer, callerId: session.user?.id, receiverId: recipientId });
+        const newPeer = createPeer(stream, true, session.user.id, recipientId);
+        setPeer({ peerConnection: newPeer, callerId: session.user.id, receiverId: recipientId });
         callDataRef.current = {
             appointmentId: appointment._id,
-            callerId: session.user?.id,
+            callerId: session.user.id,
             recipientId,
             callerName,
         };
@@ -232,7 +231,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        if (callDataRef.current.callerId === session.user?.id) {
+        if (callDataRef.current.callerId === session.user.id) {
             console.error('acceptCall failed: Cannot accept own call', { callerId: callDataRef.current.callerId });
             return;
         }
@@ -244,16 +243,18 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return;
         }
 
-        const newPeer = createPeer(stream, false, callDataRef.current.callerId, session.user?.id);
-        setPeer({ peerConnection: newPeer, callerId: callDataRef.current.callerId, receiverId: session.user?.id });
+        const newPeer = createPeer(stream, false, callDataRef.current.callerId, session.user.id);
+        setPeer({ peerConnection: newPeer, callerId: callDataRef.current.callerId, receiverId: session.user.id });
 
         console.log('Emitting callAccepted:', callDataRef.current);
         socket.emit('callAccepted', {
             appointmentId: callDataRef.current.appointmentId,
             callerId: callDataRef.current.callerId,
-            recipientId: session.user?.id,
+            recipientId: session.user.id,
         });
-        setIsCallActive(true); // Ensure isCallActive is set immediately
+
+        // NEW: Log call acceptance for debugging
+        console.log('Call accepted, setting isCallActive for receiver');
     }, [isConnected, socket, session?.user?.id, getMediaStream, createPeer]);
 
     const declineCall = useCallback(() => {
@@ -262,12 +263,12 @@ export const useVideoChat = (): UseVideoChatReturn => {
             socket.emit('declineVideoCall', {
                 appointmentId: callDataRef.current.appointmentId,
                 callerId: callDataRef.current.callerId,
-                recipientId: session.user?.id,
+                recipientId: session.user.id,
             });
             contextDeclineCall(
                 callDataRef.current.appointmentId,
                 callDataRef.current.callerId,
-                session.user?.id
+                session.user.id
             );
             cleanup();
         }
@@ -333,6 +334,8 @@ export const useVideoChat = (): UseVideoChatReturn => {
             if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === data.callerId) {
                 setIsCallActive(true);
             }
+            // NEW: Log call acceptance for caller
+            console.log('Call accepted received for caller:', { isCallActive: true, userId: session.user?.id });
         };
 
         const handleCallDeclined = (data: { appointmentId: string; recipientId: string }) => {

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useVideoChat } from '@/hooks/useVideoChat';
-import { CallRingingModal } from './CallRingingModal';
 import { useVideoCallContext } from '@/lib/VideoCallContext';
 import { useAppContext } from '@/lib/FirebaseContext';
+import { CallRingingModal } from './CallRingingModal';
 import { VideoCallModal } from './VideoCallModal';
 
 export const VideoCallModalManager: React.FC = () => {
@@ -63,13 +63,19 @@ export const VideoCallModalManager: React.FC = () => {
             setIsReceiver(false);
             setIsDeclined(false);
         }
-    }, [callRinging, incomingCall, session?.user?.id, isCallActive, localStream, remoteStream]);
+
+        // NEW: Log modal state changes
+        console.log('Modal states updated:', { isRingingModalOpen, isVideoModalOpen, isReceiver, isDeclined });
+    }, [callRinging, incomingCall, session?.user?.id, isCallActive, localStream, remoteStream, isRingingModalOpen, isVideoModalOpen, isReceiver, isDeclined]);
 
     const handleAccept = () => {
         console.log('Handling accept call');
         acceptCall();
         setIsRingingModalOpen(false);
         setIsVideoModalOpen(true);
+
+        // NEW: Log accept action
+        console.log('Accept call handled, opening video modal');
     };
 
     const handleCancel = () => {
