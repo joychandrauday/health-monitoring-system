@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -40,65 +41,44 @@ export const VideoCallModalManager: React.FC = () => {
         });
 
         if (isCallActive) {
-            console.log('Call is active, opening video modal');
             setIsVideoModalOpen(true);
             setIsRingingModalOpen(false);
             setIsDeclined(false);
-        } else if (incomingCall && session?.user?.id === incomingCall.recipientId) {
-            console.log('User is receiver for incoming call:', incomingCall);
+            console.log('Call is active, opening video modal');
+        } else if (incomingCall && session?.user?.id === incomingCall.recipientId && !isDeclined) {
             setIsRingingModalOpen(true);
             setIsVideoModalOpen(false);
             setIsReceiver(true);
             setIsDeclined(false);
-        } else if (callRinging && session?.user?.id === callRinging.callerId) {
-            console.log('User is caller for ringing call:', callRinging);
+            console.log('User is receiver for incoming call:', incomingCall);
+        } else if (callRinging && session?.user?.id === callRinging.callerId && !isDeclined) {
             setIsRingingModalOpen(true);
             setIsVideoModalOpen(false);
             setIsReceiver(false);
             setIsDeclined(false);
+            console.log('User is caller for ringing call:', callRinging);
         } else {
-            console.log('Closing all modals');
             setIsRingingModalOpen(false);
             setIsVideoModalOpen(false);
             setIsReceiver(false);
             setIsDeclined(false);
+            console.log('Closing all modals');
         }
-
-        console.log('Modal states updated:', { isRingingModalOpen, isVideoModalOpen, isReceiver, isDeclined });
-        // NEW: Force video modal
-        if (isCallActive && !isVideoModalOpen) {
-            setIsVideoModalOpen(true);
-            setIsRingingModalOpen(false);
-            console.log('Forced VideoCallModal open due to isCallActive');
-        }
-        // NEW: Clear incoming call
-        if (isCallActive && incomingCall) {
-            const socket = (window as any).__SOCKET__;
-            if (socket && session?.user?.id) {
-                socket.emit('clearCallState', { userId: session.user.id });
-                console.log('Emitted clearCallState to clear incomingCall');
-            }
-        }
-    }, [callRinging, incomingCall, session?.user?.id, isCallActive, localStream, remoteStream, isVideoModalOpen, isRingingModalOpen, isReceiver, isDeclined]);
+    }, [callRinging, incomingCall, session?.user?.id, isCallActive, localStream, remoteStream, isDeclined]);
 
     const handleAccept = () => {
         console.log('Handling accept call');
         acceptCall();
         setIsRingingModalOpen(false);
         setIsVideoModalOpen(true);
-
+        setIsDeclined(false);
         console.log('Accept call handled, opening video modal');
-        // NEW: Force modal transition
-        setTimeout(() => {
-            setIsVideoModalOpen(true);
-            setIsRingingModalOpen(false);
-            console.log('Forced video modal open after accept');
-        }, 100);
-        // NEW: Clear call state
         const socket = (window as any).__SOCKET__;
         if (socket && session?.user?.id) {
-            socket.emit('clearCallState', { userId: session.user.id });
-            console.log('Emitted clearCallState on accept');
+            setTimeout(() => {
+                socket.emit('clearCallState', { userId: session.user?.id });
+                console.log('Emitted clearCallState on accept');
+            }, 1000);
         }
     };
 
@@ -119,8 +99,8 @@ export const VideoCallModalManager: React.FC = () => {
             setIsRingingModalOpen(false);
             setIsVideoModalOpen(false);
             setIsDeclined(false);
-        }, 2000);
-        // NEW: Clear call state
+            console.log('Modals closed after decline');
+        }, 1000);
         const socket = (window as any).__SOCKET__;
         if (socket && session?.user?.id) {
             socket.emit('clearCallState', { userId: session.user.id });

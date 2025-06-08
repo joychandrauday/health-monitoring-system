@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -39,21 +38,7 @@ export const VideoCallModalWrapper: React.FC = () => {
             setIsVideoModalOpen(false);
             console.log('Closing VideoCallModal');
         }
-
-        // NEW: Force video modal open
-        if (isCallActive && !isVideoModalOpen) {
-            setIsVideoModalOpen(true);
-            console.log('Forced VideoCallModal open');
-            // NEW: Clear stale call state
-            const socket = (window as any).__SOCKET__;
-            if (socket && session?.user?.id) {
-                setTimeout(() => {
-                    socket.emit('clearCallState', { userId: session.user?.id });
-                    console.log('Delayed clearCallState in VideoCallModalWrapper');
-                }, 2000);
-            }
-        }
-    }, [isCallActive, localStream, remoteStream, session?.user?.id, callRinging, incomingCall, isVideoModalOpen]);
+    }, [isCallActive, localStream, remoteStream, session?.user?.id, callRinging, incomingCall]);
 
     return (
         <VideoCallModal

@@ -58,8 +58,17 @@ export const useVideoChat = (): UseVideoChatReturn => {
             return stream;
         } catch (err) {
             console.error('Failed to get media stream:', err);
-            setError('Failed to access camera/microphone');
-            return null;
+            try {
+                // Fallback to audio-only if video fails
+                const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Fallback audio stream acquired:', audioStream.id);
+                setLocalStream(audioStream);
+                return audioStream;
+            } catch (audioErr) {
+                console.error('Failed to get audio stream:', audioErr);
+                setError('Failed to access camera or microphone');
+                return null;
+            }
         }
     }, [localStream]);
 
@@ -97,11 +106,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
     const createPeer = useCallback((stream: MediaStream, initiator: boolean, callerId: string, receiverId: string) => {
         const iceServers: RTCIceServer[] = [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
             {
                 urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+                username: 'webrtc',
+                credential: 'webrtc',
+            },
+            {
+                urls: 'turn:turn.anyfirewall.com:443?transport=udp',
                 username: 'webrtc',
                 credential: 'webrtc',
             },
@@ -114,7 +126,6 @@ export const useVideoChat = (): UseVideoChatReturn => {
         });
 
         peerConnection.on('signal', (data: SignalData) => {
-            console.log('Peer signal generated:', { callerId, receiverId, signalData: data });
             if (socket && session?.user?.id && callDataRef.current) {
                 console.log('Emitting signal:', { callerId, receiverId, appointmentId: callDataRef.current.appointmentId });
                 socket.emit('signal', {
@@ -123,9 +134,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
                     receiverId,
                     signalData: data,
                 });
-            }
-            // NEW: Extended signal retry
-            if (socket && session?.user?.id && callDataRef.current) {
+                // Retry signal emission after 1s and 3s
                 setTimeout(() => {
                     socket.emit('signal', {
                         appointmentId: callDataRef.current?.appointmentId,
@@ -133,8 +142,17 @@ export const useVideoChat = (): UseVideoChatReturn => {
                         receiverId,
                         signalData: data,
                     });
-                    console.log('Retried signal emission:', { callerId, receiverId });
+                    console.log('Retried signal emission (1s):', { callerId, receiverId });
                 }, 1000);
+                setTimeout(() => {
+                    socket.emit('signal', {
+                        appointmentId: callDataRef.current?.appointmentId,
+                        callerId,
+                        receiverId,
+                        signalData: data,
+                    });
+                    console.log('Retried signal emission (3s):', { callerId, receiverId });
+                }, 3000);
             }
         });
 
@@ -146,13 +164,17 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         peerConnection.on('error', (err: Error) => {
             console.error('Peer error:', err);
-            setError('Peer connection error');
+            setError(`Peer connection error: ${err.message}`);
             cleanup();
         });
 
         peerConnection.on('close', () => {
             console.log('Peer connection closed');
             cleanup();
+        });
+
+        peerConnection.on('connect', () => {
+            console.log('Peer connection established');
         });
 
         if (callDataRef.current) {
@@ -215,7 +237,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const stream = await getMediaStream();
         if (!stream) {
-            setError('Failed to access camera/microphone');
+            setError('Failed to access camera or microphone');
             console.error('startVideoCall failed: No media stream');
             return;
         }
@@ -253,7 +275,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
 
         const stream = await getMediaStream();
         if (!stream) {
-            setError('Failed to access camera/microphone');
+            setError('Failed to access camera or microphone');
             console.error('acceptCall failed: No media stream');
             return;
         }
@@ -268,9 +290,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             recipientId: session.user.id,
         });
 
-        console.log('Call accepted, setting isCallActive for receiver');
         setIsCallActive(true);
-        // NEW: Delay clearCallState
         setTimeout(() => {
             if (socket && session?.user?.id) {
                 socket.emit('clearCallState', { userId: session.user.id });
@@ -345,6 +365,10 @@ export const useVideoChat = (): UseVideoChatReturn => {
         }
 
         const handleStartVideoCall = (data: { appointmentId: string; callerId: string; recipientId: string; callerName: string }) => {
+            if (!data.appointmentId || !data.callerId || !data.recipientId) {
+                console.error('Invalid startVideoCall data:', data);
+                return;
+            }
             console.log('Received startVideoCall:', data);
             if (data.recipientId === session.user?.id) {
                 callDataRef.current = data;
@@ -352,13 +376,14 @@ export const useVideoChat = (): UseVideoChatReturn => {
         };
 
         const handleSignal = (data: { appointmentId: string; callerId: string; receiverId: string; signalData: SignalData }) => {
+            if (!data.appointmentId || !data.callerId || !data.receiverId || !data.signalData) {
+                console.error('Invalid signal data:', data);
+                return;
+            }
             console.log('Received signal:', data);
-            if (peer && data.appointmentId === callDataRef.current?.appointmentId) {
+            if (peer && data.appointmentId === callDataRef.current?.appointmentId && data.receiverId === session.user?.id) {
                 console.log('Processing signal for peer:', data.signalData);
                 peer.peerConnection.signal(data.signalData);
-            }
-            // NEW: Extended signal retry
-            if (peer && data.appointmentId === callDataRef.current?.appointmentId) {
                 setTimeout(() => {
                     peer.peerConnection.signal(data.signalData);
                     console.log('Retried signal processing');
@@ -367,26 +392,28 @@ export const useVideoChat = (): UseVideoChatReturn => {
         };
 
         const handleCallAccepted = (data: { appointmentId: string; callerId: string; recipientId: string }) => {
+            if (!data.appointmentId || !data.callerId || !data.recipientId) {
+                console.error('Invalid callAccepted data:', data);
+                return;
+            }
             console.log('Received callAccepted:', data);
             if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === data.callerId) {
                 setIsCallActive(true);
-            }
-            console.log('Call accepted received for caller:', { isCallActive: true, userId: session.user?.id });
-            // NEW: Force isCallActive for caller
-            if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === data.callerId) {
-                setIsCallActive(true);
                 console.log('Forced isCallActive for caller on callAccepted');
-            }
-            // NEW: Delay clearCallState for caller
-            if (socket && session?.user?.id && session.user?.id === data.callerId) {
                 setTimeout(() => {
-                    socket.emit('clearCallState', { userId: session.user?.id });
-                    console.log('Delayed clearCallState for caller on callAccepted');
+                    if (socket && session?.user?.id) {
+                        socket.emit('clearCallState', { userId: session.user?.id });
+                        console.log('Delayed clearCallState for caller on callAccepted');
+                    }
                 }, 2000);
             }
         };
 
         const handleCallDeclined = (data: { appointmentId: string; recipientId: string }) => {
+            if (!data.appointmentId || !data.recipientId) {
+                console.error('Invalid callDeclined data:', data);
+                return;
+            }
             console.log('Received callDeclined:', data);
             if (data.appointmentId === callDataRef.current?.appointmentId && session.user?.id === callDataRef.current?.callerId) {
                 cleanup();
@@ -398,6 +425,10 @@ export const useVideoChat = (): UseVideoChatReturn => {
         };
 
         const handleHangUp = (data: { appointmentId: string }) => {
+            if (!data.appointmentId) {
+                console.error('Invalid hangUp data:', data);
+                return;
+            }
             console.log('Received hangUp:', data);
             if (data.appointmentId === callDataRef.current?.appointmentId) {
                 cleanup();
@@ -409,6 +440,10 @@ export const useVideoChat = (): UseVideoChatReturn => {
         };
 
         const handleClearCallState = ({ userId }: { userId: string }) => {
+            if (!userId) {
+                console.error('Invalid clearCallState data:', { userId });
+                return;
+            }
             if (userId === session.user?.id) {
                 callDataRef.current = null;
                 setIsCallActive(false);
@@ -430,6 +465,7 @@ export const useVideoChat = (): UseVideoChatReturn => {
             socket.off('callDeclined', handleCallDeclined);
             socket.off('hangUp', handleHangUp);
             socket.off('clearCallState', handleClearCallState);
+            console.log('Socket listeners cleaned up');
         };
     }, [socket, session?.user?.id, peer, cleanup]);
 

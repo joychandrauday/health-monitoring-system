@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Phone, Mic, MicOff, Video as VideoIcon, VideoOff } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Phone, Mic, MicOff, Video as VideoIcon, VideoOff } from 'lucide-react';
 
 interface CallRingingModalProps {
     isOpen: boolean;
@@ -65,8 +65,12 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
                 audioRef.current.currentTime = 0;
                 console.log('Ringtone paused');
             }
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+                console.log('Cleared video stream');
+            }
         };
-    }, [isOpen, isDeclined, localStream]);
+    }, [isOpen, isDeclined, localStream, recipientId, recipientName, isReceiver]);
 
     if (!isOpen) return null;
 

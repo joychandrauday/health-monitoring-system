@@ -49,42 +49,21 @@ export const VideoCallModal: React.FC<VideoCallModalProps> = ({
             remoteVideoRef.current.play().catch(err => console.error('Remote video play error:', err));
         }
 
-        console.log('Stream assignment:', {
-            localStreamId: localStream?.id,
-            remoteStreamId: remoteStream?.id,
-            hasLocalVideoRef: !!localVideoRef.current,
-            hasRemoteVideoRef: !!remoteVideoRef.current,
-        });
-        if (localVideoRef.current) {
-            console.log('Local video element:', {
-                srcObject: !!localVideoRef.current.srcObject,
-                readyState: localVideoRef.current.readyState,
-            });
-        }
-        if (remoteVideoRef.current) {
-            console.log('Remote video element:', {
-                srcObject: !!remoteVideoRef.current.srcObject,
-                readyState: remoteVideoRef.current.readyState,
-            });
-        }
-        // NEW: Force video play
-        if (localVideoRef.current && localStream) {
-            setTimeout(() => {
-                localVideoRef.current?.play().catch(err => console.error('Forced local video play error:', err));
-                console.log('Forced local video play');
-            }, 100);
-        }
-        if (remoteVideoRef.current && remoteStream) {
-            setTimeout(() => {
-                remoteVideoRef.current?.play().catch(err => console.error('Forced remote video play error:', err));
-                console.log('Forced remote video play');
-            }, 100);
-        }
+        return () => {
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = null;
+                console.log('Cleared local video stream');
+            }
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = null;
+                console.log('Cleared remote video stream');
+            }
+        };
     }, [localStream, remoteStream, isOpen]);
 
     if (!isOpen) {
         console.log('VideoCallModal not open');
-        return <div>Video Call Modal Closed</div>;
+        return null;
     }
 
     return (

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -41,10 +42,11 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             return;
         }
 
-        // Initialize Socket.IO for signaling
         const socketInstance = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`, {
             auth: { token: session?.user?.accessToken },
             transports: ['websocket', 'polling'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
         });
 
         socketInstance.on('connect', () => {
@@ -55,9 +57,15 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socketInstance.on('disconnect', () => {
             console.log('Socket disconnected');
             setIsConnected(false);
+            setIncomingCall(null);
+            setCallRinging(null);
         });
 
         socketInstance.on('startVideoCall', (data) => {
+            if (!data.appointmentId || !data.callerId || !data.recipientId || !data.callerName) {
+                console.error('Invalid startVideoCall data:', data);
+                return;
+            }
             console.log('Received startVideoCall:', data);
             setIncomingCall({
                 callerId: data.callerId,
@@ -68,6 +76,10 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         socketInstance.on('callRinging', (data) => {
+            if (!data.appointmentId || !data.callerId || !data.recipientId || !data.callerName) {
+                console.error('Invalid callRinging data:', data);
+                return;
+            }
             console.log('Received callRinging:', data);
             setCallRinging({
                 appointmentId: data.appointmentId,
@@ -78,6 +90,10 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         socketInstance.on('callDeclined', (data) => {
+            if (!data.appointmentId) {
+                console.error('Invalid callDeclined data:', data);
+                return;
+            }
             console.log('Received callDeclined:', data);
             setCallRinging(null);
             setIncomingCall(null);
@@ -85,11 +101,13 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         socketInstance.on('callError', (data) => {
             console.error('Received callError:', data);
+            setCallRinging(null);
+            setIncomingCall(null);
         });
 
         setSocket(socketInstance);
+        (window as any).__SOCKET__ = socketInstance;
 
-        // Cleanup
         return () => {
             console.log('Cleaning up socket');
             socketInstance.off('connect');
@@ -100,6 +118,10 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             socketInstance.off('callError');
             socketInstance.disconnect();
             setSocket(null);
+            setIsConnected(false);
+            setIncomingCall(null);
+            setCallRinging(null);
+            (window as any).__SOCKET__ = null;
         };
     }, [session?.user?.id, session?.user?.accessToken]);
 
@@ -115,10 +137,11 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const clearRinging = () => {
         console.log('Clearing ringing state');
         setCallRinging(null);
+        setIncomingCall(null);
     };
 
     return (
-        <VideoCallContext
+        <VideoCallContext.Provider
             value={{
                 socket,
                 isConnected,
@@ -130,7 +153,7 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             }}
         >
             {children}
-        </VideoCallContext>
+        </VideoCallContext.Provider>
     );
 };
 
