@@ -5,11 +5,9 @@ import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Phone, Mic, MicOff, Video as VideoIcon, VideoOff } from 'lucide-react';
 
-interface CallRingingModalProps {
+interface CallerRingingModalProps {
     isOpen: boolean;
-    recipientId: string;
     recipientName: string;
-    onAccept: () => void;
     onCancel: () => void;
     isDeclined: boolean;
     localStream: MediaStream | null;
@@ -17,14 +15,11 @@ interface CallRingingModalProps {
     toggleVideoMute: () => void;
     isAudioMuted: boolean;
     isVideoMuted: boolean;
-    isReceiver: boolean;
 }
 
-export const CallRingingModal: React.FC<CallRingingModalProps> = ({
+export const CallerRingingModal: React.FC<CallerRingingModalProps> = ({
     isOpen,
-    recipientId,
     recipientName,
-    onAccept,
     onCancel,
     isDeclined,
     localStream,
@@ -32,18 +27,15 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
     toggleVideoMute,
     isAudioMuted,
     isVideoMuted,
-    isReceiver,
 }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
-        console.log('CallRingingModal props:', {
+        console.log('CallerRingingModal props:', {
             isOpen,
-            recipientId,
             recipientName,
             isDeclined,
-            isReceiver,
             hasLocalStream: !!localStream,
         });
         if (isOpen && !isDeclined && audioRef.current) {
@@ -85,14 +77,10 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
                         </div>
                     </div>
                     <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                        {isDeclined ? 'Call Declined' : isReceiver ? 'Incoming Call' : 'Calling...'}
+                        {isDeclined ? 'Call Declined' : 'Calling...'}
                     </h2>
                     <p className="text-gray-600 mb-6">
-                        {isDeclined
-                            ? `Call declined by ${recipientName}`
-                            : isReceiver
-                                ? `Incoming call from ${recipientName}`
-                                : `Calling ${recipientName}...`}
+                        {isDeclined ? `Call declined by ${recipientName}` : `Calling ${recipientName}...`}
                     </p>
                     {localStream ? (
                         <div className="relative w-full max-w-xs mb-4">
@@ -140,29 +128,6 @@ export const CallRingingModal: React.FC<CallRingingModalProps> = ({
                         >
                             Close
                         </Button>
-                    ) : isReceiver ? (
-                        <div className="flex gap-4">
-                            <Button
-                                variant="default"
-                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2"
-                                onClick={() => {
-                                    console.log('Accept Call button clicked');
-                                    onAccept();
-                                }}
-                            >
-                                Accept
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="border-red-600 text-red-600 hover:bg-red-100 px-4 py-2"
-                                onClick={() => {
-                                    console.log('Decline Call button clicked');
-                                    onCancel();
-                                }}
-                            >
-                                Decline
-                            </Button>
-                        </div>
                     ) : (
                         <Button
                             variant="outline"

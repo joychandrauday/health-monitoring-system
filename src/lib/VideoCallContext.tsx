@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
@@ -106,7 +105,6 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         setSocket(socketInstance);
-        (window as any).__SOCKET__ = socketInstance;
 
         return () => {
             console.log('Cleaning up socket');
@@ -121,7 +119,6 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setIsConnected(false);
             setIncomingCall(null);
             setCallRinging(null);
-            (window as any).__SOCKET__ = null;
         };
     }, [session?.user?.id, session?.user?.accessToken]);
 
