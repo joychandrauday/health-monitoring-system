@@ -7,7 +7,6 @@ import StoreProvider from "@/lib/storeProvider";
 import ChatIconModal from "@/components/Modules/Chat/ChatIconModal";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/utils/authOptions";
-import { FirebaseProvider } from "@/lib/FirebaseContext";
 import { VideoCallModalManager } from "@/components/Modules/VideoCall/VideoCallModalManager";
 import { VideoCallProvider } from "@/lib/VideoCallContext";
 
@@ -27,7 +26,7 @@ export default async function RootLayout({
       <head />
       <body>
         <SessionProviders>
-          <FirebaseProvider>
+          <VideoCallProvider>
             <VideoCallProvider>
               <StoreProvider>
                 <ThemeProvider
@@ -48,7 +47,7 @@ export default async function RootLayout({
                 </ThemeProvider>
               </StoreProvider>
             </VideoCallProvider>
-          </FirebaseProvider>
+          </VideoCallProvider>
         </SessionProviders>
       </body>
     </html >
