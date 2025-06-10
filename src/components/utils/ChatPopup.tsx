@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Send } from 'lucide-react';
 
 interface ChatPopupProps {
     userId: string;
@@ -262,6 +263,8 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
                                             ? new Date(msg.timestamp).toLocaleString('en-US', {
                                                 hour: 'numeric',
                                                 minute: 'numeric',
+                                                month: 'numeric',
+                                                year: 'numeric',
                                                 hour12: true,
                                                 timeZone: 'Asia/Dhaka',
                                             })
@@ -294,22 +297,9 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
                         disabled={!input.trim() || !isConnected || isLoading}
                         size="icon"
                         aria-label="Send message"
-                        className="bg-teal-500 hover:bg-teal-600 rounded-lg text-white disabled:opacity-50"
+                        className=" text-xl rounded-lg text-white disabled:opacity-50"
                     >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                            />
-                        </svg>
+                        <Send />
                     </Button>
                 </div>
             </div>
