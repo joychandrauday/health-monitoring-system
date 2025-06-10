@@ -7,11 +7,12 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { IAppointment } from "@/types";
 import { useVideoChat } from "@/hooks/useVideoChat";
-import { useAppContext } from "@/lib/FirebaseContext";
+import { useVideoCallContext } from "@/lib/VideoCallContext";
+import { Types } from 'mongoose';
 
 export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = ({ appointment }) => {
     const { data: session } = useSession();
-    const { isConnected, incomingCall, callRinging, isOnline } = useAppContext();
+    const { isConnected, callRinging, incomingCall, isOnline } = useVideoCallContext();
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [isOnlineUser, setIsOnlineUser] = useState(false);
     const {
@@ -21,16 +22,22 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
     } = useVideoChat();
 
     useEffect(() => {
-        if (isConnected && session?.user?.id) {
+        if (isConnected && session?.user?.id && Types.ObjectId.isValid(session.user.id)) {
             const online = isOnline(session.user.id);
+            console.log('Checking isOnlineUser for user:', session.user.id, 'Result:', online);
             setIsOnlineUser(online);
         } else {
+            console.warn('Cannot check isOnlineUser:', {
+                isConnected,
+                hasUserId: !!session?.user?.id,
+                userIdValid: session?.user?.id ? Types.ObjectId.isValid(session.user.id) : false,
+            });
             setIsOnlineUser(false);
         }
     }, [isConnected, session?.user?.id, isOnline]);
 
     useEffect(() => {
-        console.log('TeleconsultationActions: callRinging:', callRinging, 'incomingCall:', incomingCall);
+        console.log('TeleconsultationActions state:', { callRinging, incomingCall });
     }, [callRinging, incomingCall]);
 
     const handleOpenChat = () => {
@@ -45,12 +52,18 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
         typeof appointment.patientId === 'string' ? appointment.patientId : appointment.patientId._id;
     const patientName =
         typeof appointment.patientId === 'string' ? 'Patient' : appointment.patientId.name || 'Patient';
-    const doctorName =
-        typeof appointment.doctorId === 'string' ? 'Doctor' : appointment.doctorId.name || 'Doctor';
     const doctorId =
         typeof appointment.doctorId === 'string' ? appointment.doctorId : appointment.doctorId._id;
+    const doctorName =
+        typeof appointment.doctorId === 'string' ? 'Doctor' : appointment.doctorId.name || 'Doctor';
 
-    const isDoctorOnline = isOnline(doctorId);
+    const isDoctorOnline = Types.ObjectId.isValid(doctorId) ? isOnline(doctorId) : false;
+    console.log('Checking isDoctorOnline for doctor:', doctorId, 'Result:', isDoctorOnline);
+
+    if (!Types.ObjectId.isValid(patientId) || !Types.ObjectId.isValid(doctorId)) {
+        console.error('Invalid appointment IDs:', { patientId, doctorId });
+        return <div className="text-red-500">Invalid appointment data</div>;
+    }
 
     return (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -102,7 +115,7 @@ export const TeleconsultationActions: React.FC<{ appointment: IAppointment }> = 
                 </Button>
             </div>
 
-            {isChatOpen && session?.user?.id && (
+            {isChatOpen && session?.user?.id && Types.ObjectId.isValid(session.user.id) && (
                 <ChatPopup
                     userId={session.user.id}
                     selectedUserId={patientId}
