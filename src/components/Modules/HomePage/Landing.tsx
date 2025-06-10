@@ -60,9 +60,9 @@ const Landing: React.FC<LandingProps> = ({ doctors }) => {
 
             {/* How It Works Section */}
             <section className="flex items-center justify-center min-h-screen  bg-gray-50">
-                <div className="container mx-auto px-4 sm:px-6 md:px-8">
+                <div className="container mx-auto px-4 sm:px-6 md:px-8 py-12">
                     <motion.h2
-                        className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 text-center"
+                        className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 text-center"
                         variants={fadeIn}
                         initial="hidden"
                         whileInView="visible"
