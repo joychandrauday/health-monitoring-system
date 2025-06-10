@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -122,10 +123,7 @@ export const VideoCallModalManager: React.FC = () => {
                 isAudioMuted={isAudioMuted}
                 isVideoMuted={isVideoMuted}
             />
-            {
-                isVideoModalOpen &&
-                <VideoCallModalWrapper />
-            }
+            <VideoCallModalWrapper />
         </>
     );
 };

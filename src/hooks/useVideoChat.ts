@@ -97,7 +97,11 @@ export const useVideoChat = (): UseVideoChatReturn => {
         setIsVideoMuted(false);
         setError(null);
         callDataRef.current = null;
-        clearRinging();
+        try {
+            clearRinging();
+        } catch (err) {
+            console.error('Error in clearRinging:', err);
+        }
         if (socket && session?.user?.id) {
             socket.emit('clearCallState', { userId: session.user.id });
             console.log('Emitted clearCallState during cleanup');

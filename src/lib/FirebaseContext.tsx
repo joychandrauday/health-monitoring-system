@@ -1,23 +1,25 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useMessages } from '@/hooks/useMessages';
-import useSocket from '@/hooks/useSocket';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import useSocket from '@/hooks/useSocket';
+import { useMessages } from '@/hooks/useMessages';
 
-interface ContextType {
+// Define the context type
+interface AppContextType {
     isConnected: boolean;
     incomingCall: { callerId: string; callerName: string; appointmentId: string; recipientId: string } | null;
-    callRinging: { appointmentId: string; callerId: string; recipientId: string; callerName: string; } | null;
+    callRinging: { callerId: string; callerName: string; appointmentId: string; recipientId: string } | null;
+    isOnline: (userId: string) => boolean;
     declineCall: (appointmentId: string, callerId: string, recipientId: string) => void;
     clearRinging: () => void;
-    isOnline: (userId: string) => boolean;
 }
 
-const AppContext = createContext<ContextType | undefined>(undefined);
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Combined provider component
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { data: session } = useSession();
     const { socket } = useSocket();
     const [isConnected, setIsConnected] = useState(false);
@@ -27,50 +29,116 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         appointmentId: string;
         recipientId: string;
     } | null>(null);
-    const [callRinging, setCallRinging] = useState(null);
-    const { isOnline } = useMessages(session?.user?.id as string, socket);
+    const [callRinging, setCallRinging] = useState<{
+        callerId: string;
+        callerName: string;
+        appointmentId: string;
+        recipientId: string;
+    } | null>(null);
+    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+    const { isOnline: socketIsOnline } = useMessages(session?.user?.id as string, socket);
 
+    // Firebase setup for online users
     useEffect(() => {
-        if (!session?.user?.id || !session?.user?.accessToken) {
-            console.log('Missing user ID or access token, skipping socket setup');
+        const db = getDatabase();
+        const connectedRef = ref(db, '.info/connected');
+        const usersRef = ref(db, 'onlineUsers');
+
+        // Monitor Firebase connection state
+        const unsubscribeConnected = onValue(connectedRef, (snap) => {
+            setIsConnected(snap.val() === true);
+        });
+
+        // Monitor online users
+        const unsubscribeUsers = onValue(usersRef, (snapshot) => {
+            const users = snapshot.val() ? Object.keys(snapshot.val()) : [];
+            setOnlineUsers(users);
+        });
+
+        // Cleanup
+        return () => {
+            unsubscribeConnected();
+            unsubscribeUsers();
+        };
+    }, []);
+
+    // Socket setup for call handling
+    useEffect(() => {
+        if (!session?.user?.id || !session?.user?.accessToken || !socket) {
+            console.log('Missing user ID, access token, or socket, skipping socket setup');
+            setIsConnected(false);
             return;
         }
 
         setIsConnected(true);
 
-        return () => {
-            setIsConnected(false);
-        };
-    }, [session?.user?.accessToken, session?.user?.id]);
+        // Handle incoming call
+        socket.on('incomingCall', (data: { callerId: string; callerName: string; appointmentId: string; recipientId: string }) => {
+            setIncomingCall(data);
+            setCallRinging(data);
+        });
 
-    const declineCall = (appointmentId: string, callerId: string, recipientId: string) => {
-        if (socket) {
-            console.log('Emitting declineVideoCall:', { appointmentId, callerId, recipientId });
-            socket.emit('declineVideoCall', { appointmentId, callerId, recipientId });
+        // Handle call declined
+        socket.on('callDeclined', () => {
             setIncomingCall(null);
             setCallRinging(null);
-        }
-    };
+        });
 
-    const clearRinging = () => {
-        setCall(null);
-    };
+        // Handle socket errors
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            setIsConnected(false);
+        });
+
+        // Cleanup
+        return () => {
+            socket.off('incomingCall');
+            socket.off('callDeclined');
+            socket.off('error');
+            socket.disconnect();
+            setIsConnected(false);
+        };
+    }, [session?.user?.id, session?.user?.accessToken, socket]);
+
+    // Check if a user is online (combines socket and Firebase)
+    const isOnline = useCallback(
+        (userId: string) => {
+            return socketIsOnline(userId) || onlineUsers.includes(userId);
+        },
+        [socketIsOnline, onlineUsers]
+    );
+
+    // Decline a call
+    const declineCall = useCallback(
+        (appointmentId: string, callerId: string, recipientId: string) => {
+            if (socket) {
+                console.log('Emitting declineVideoCall:', { appointmentId, callerId, recipientId });
+                socket.emit('declineVideoCall', { appointmentId, callerId, recipientId });
+                setIncomingCall(null);
+                setCallRinging(null);
+            }
+        },
+        [socket]
+    );
+
+    // Clear ringing state
+    const clearRinging = useCallback(() => {
+        setIncomingCall(null);
+        setCallRinging(null);
+    }, []);
 
     return (
-        <AppContext.Provider value={{ isConnected, incomingCall, callRinging, declineCall, clearRinging, isOnline }}>
+        <AppContext.Provider value={{ isConnected, incomingCall, callRinging, isOnline, declineCall, clearRinging }}>
             {children}
         </AppContext.Provider>
     );
 };
 
+// Custom hook to use the context
 export const useAppContext = () => {
     const context = useContext(AppContext);
     if (!context) {
-        throw new Error('useAppContext must be used within a FirebaseProvider');
+        throw new Error('useAppContext must be used within an AppProvider');
     }
     return context;
 };
-
-function setCall(arg0: null) {
-    throw new Error('Function not implemented.');
-}

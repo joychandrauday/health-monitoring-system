@@ -1,15 +1,22 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { io, Socket } from 'socket.io-client';
 import { useMessages } from '@/hooks/useMessages';
 
+interface CallData {
+    appointmentId: string;
+    callerId: string;
+    recipientId: string;
+    callerName: string;
+}
+
 interface VideoCallContextType {
     socket: Socket | null;
     isConnected: boolean;
-    incomingCall: { callerId: string; callerName: string; appointmentId: string; recipientId: string } | null;
-    callRinging: { appointmentId: string; callerId: string; recipientId: string; callerName: string } | null;
+    incomingCall: CallData | null;
+    callRinging: CallData | null;
     declineCall: (appointmentId: string, callerId: string, recipientId: string) => void;
     clearRinging: () => void;
     isOnline: (userId: string) => boolean;
@@ -17,32 +24,23 @@ interface VideoCallContextType {
 
 const VideoCallContext = createContext<VideoCallContextType | undefined>(undefined);
 
-export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const VideoCallProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { data: session } = useSession();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [incomingCall, setIncomingCall] = useState<{
-        callerId: string;
-        callerName: string;
-        appointmentId: string;
-        recipientId: string;
-    } | null>(null);
-    const [callRinging, setCallRinging] = useState<{
-        appointmentId: string;
-        callerId: string;
-        recipientId: string;
-        callerName: string;
-    } | null>(null);
-    const { isOnline } = useMessages(session?.user?.id as string, socket);
+    const [incomingCall, setIncomingCall] = useState<CallData | null>(null);
+    const [callRinging, setCallRinging] = useState<CallData | null>(null);
+    const userId = session?.user?.id;
+    const { isOnline } = useMessages(userId ?? '', socket);
 
     useEffect(() => {
-        if (!session?.user?.id || !session?.user?.accessToken) {
-            console.log('Missing user ID or access token, skipping socket setup');
+        if (!userId || !session?.user?.accessToken) {
+            console.log('No userId or accessToken, skipping socket setup');
             return;
         }
 
-        const socketInstance = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`, {
-            auth: { token: session?.user?.accessToken },
+        const socketInstance = io(`${process.env.REACT_APP_STREAMING_URL || 'http://localhost:5000'}`, {
+            auth: { token: session.user.accessToken },
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
@@ -60,35 +58,25 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setCallRinging(null);
         });
 
-        socketInstance.on('startVideoCall', (data) => {
+        socketInstance.on('startVideoCall', (data: CallData) => {
             if (!data.appointmentId || !data.callerId || !data.recipientId || !data.callerName) {
                 console.error('Invalid startVideoCall data:', data);
                 return;
             }
             console.log('Received startVideoCall:', data);
-            setIncomingCall({
-                callerId: data.callerId,
-                callerName: data.callerName,
-                appointmentId: data.appointmentId,
-                recipientId: data.recipientId,
-            });
+            setIncomingCall(data);
         });
 
-        socketInstance.on('callRinging', (data) => {
+        socketInstance.on('callRinging', (data: CallData) => {
             if (!data.appointmentId || !data.callerId || !data.recipientId || !data.callerName) {
                 console.error('Invalid callRinging data:', data);
                 return;
             }
             console.log('Received callRinging:', data);
-            setCallRinging({
-                appointmentId: data.appointmentId,
-                callerId: data.callerId,
-                recipientId: data.recipientId,
-                callerName: data.callerName,
-            });
+            setCallRinging(data);
         });
 
-        socketInstance.on('callDeclined', (data) => {
+        socketInstance.on('callDeclined', (data: { appointmentId: string }) => {
             if (!data.appointmentId) {
                 console.error('Invalid callDeclined data:', data);
                 return;
@@ -98,7 +86,7 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setIncomingCall(null);
         });
 
-        socketInstance.on('callError', (data) => {
+        socketInstance.on('callError', (data: { message: string }) => {
             console.error('Received callError:', data);
             setCallRinging(null);
             setIncomingCall(null);
@@ -120,7 +108,7 @@ export const VideoCallProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setIncomingCall(null);
             setCallRinging(null);
         };
-    }, [session?.user?.id, session?.user?.accessToken]);
+    }, [userId, session?.user?.accessToken]);
 
     const declineCall = (appointmentId: string, callerId: string, recipientId: string) => {
         if (socket) {
