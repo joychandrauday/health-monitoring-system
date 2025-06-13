@@ -297,9 +297,9 @@ export const ChatPopup: React.FC<ChatPopupProps> = ({
                         disabled={!input.trim() || !isConnected || isLoading}
                         size="icon"
                         aria-label="Send message"
-                        className=" text-xl text-primary disabled:opacity-50"
+                        className="  bg-transparent disabled:opacity-50"
                     >
-                        <Send />
+                        <Send className='text-primary text-2xl' />
                     </Button>
                 </div>
             </div>
