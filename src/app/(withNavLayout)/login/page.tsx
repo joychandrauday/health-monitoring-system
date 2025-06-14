@@ -312,4 +312,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;navbar
+export default LoginPage;

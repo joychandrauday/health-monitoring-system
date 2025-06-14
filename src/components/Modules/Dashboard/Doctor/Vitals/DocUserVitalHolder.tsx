@@ -118,42 +118,42 @@ const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
                                                     })
                                                     : 'N/A'}
                                             </td>
-                                        </Link>
-                                        <td className="p-4 text-gray-600">{vital.status || '-'}</td>
-                                        <td className="p-4 text-gray-600">{vital.heartRate ? `${vital.heartRate} bpm` : '-'}</td>
+                                            <td className="p-4 text-gray-600">{vital.status || '-'}</td>
+                                            <td className="p-4 text-gray-600">{vital.heartRate ? `${vital.heartRate} bpm` : '-'}</td>
 
-                                        <td className="p-4 text-gray-600">{vital.glucoseLevel ? `${vital.glucoseLevel} mg/dL` : '-'}</td>
-                                        <td className="p-4 text-gray-600">{vital.temperature ? `${vital.temperature}°C` : '-'}</td>
-                                        <td className="p-4 text-gray-600">
-                                            {vital.injury && vital.injury.type !== 'none'
-                                                ? `${vital.injury.type} (${vital.injury.severity || 'N/A'}) ${vital.injury.description || ''}`
-                                                : '-'}
-                                        </td>
-                                        <td className="p-4 text-gray-600">{vital.priority || '-'}</td>
-                                        <td className="p-4">
-                                            {vital.visuals && vital.visuals.length > 0 ? (
-                                                <div className="flex gap-2">
-                                                    {vital.visuals.map((visual, index) => (
-                                                        <button
-                                                            key={index}
-                                                            onClick={() => handleImageClick(visual)}
-                                                            className="focus:outline-none"
-                                                            aria-label={`View visual ${index + 1}`}
-                                                        >
-                                                            <Image
-                                                                src={visual}
-                                                                alt={`Vital visual ${index + 1}`}
-                                                                width={40}
-                                                                height={40}
-                                                                className="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity duration-150"
-                                                            />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
+                                            <td className="p-4 text-gray-600">{vital.glucoseLevel ? `${vital.glucoseLevel} mg/dL` : '-'}</td>
+                                            <td className="p-4 text-gray-600">{vital.temperature ? `${vital.temperature}°C` : '-'}</td>
+                                            <td className="p-4 text-gray-600">
+                                                {vital.injury && vital.injury.type !== 'none'
+                                                    ? `${vital.injury.type} (${vital.injury.severity || 'N/A'}) ${vital.injury.description || ''}`
+                                                    : '-'}
+                                            </td>
+                                            <td className="p-4 text-gray-600">{vital.priority || '-'}</td>
+                                            <td className="p-4">
+                                                {vital.visuals && vital.visuals.length > 0 ? (
+                                                    <div className="flex gap-2">
+                                                        {vital.visuals.map((visual, index) => (
+                                                            <button
+                                                                key={index}
+                                                                onClick={() => handleImageClick(visual)}
+                                                                className="focus:outline-none"
+                                                                aria-label={`View visual ${index + 1}`}
+                                                            >
+                                                                <Image
+                                                                    src={visual}
+                                                                    alt={`Vital visual ${index + 1}`}
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity duration-150"
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </td>
+                                        </Link>
                                     </tr>
                                 ))}
                             </tbody>
