@@ -211,13 +211,22 @@ const NavbarDesign = ({ session }: { session: Session | null }) => {
 
           {/* Call to Action and Mobile Menu */}
           <div className="flex justify-end w-1/3 gap-2 sm:gap-3">
-            <Link
-              href="/patient/dashboard/appointments/"
-              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-primary text-white rounded-full text-xs sm:text-sm whitespace-nowrap hover:bg-teal-700 transition-colors duration-200 flex items-center"
-              aria-label="Book Appointment"
-            >
-              Book Appointment
-            </Link>
+            {
+              session?.user?.role === 'patient' ? <Link
+                href={`${session?.user?.role}/dashboard/appointments/`}
+                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-primary text-white rounded-full text-xs sm:text-sm whitespace-nowrap hover:bg-teal-700 transition-colors duration-200 flex items-center"
+                aria-label="Book Appointment"
+              >
+                Book Appointment
+              </Link> :
+                <Link
+                  href={`${session?.user?.role}/dashboard/appointments/`}
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-primary text-white rounded-full text-xs sm:text-sm whitespace-nowrap hover:bg-teal-700 transition-colors duration-200 flex items-center"
+                  aria-label="Book Appointment"
+                >
+                  View Appointments
+                </Link>
+            }
             <DropdownMenu onOpenChange={setIsMobileMenuOpen}>
               <DropdownMenuTrigger
                 className="lg:hidden p-2 sm:p-3 rounded-md hover:bg-gray-100 transition-colors"
