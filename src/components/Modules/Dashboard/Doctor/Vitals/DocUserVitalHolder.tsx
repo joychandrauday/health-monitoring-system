@@ -8,7 +8,6 @@ import { Meta } from '../../Admin/Doctor/DocRequestTable';
 import TablePagination from '@/components/utils/TablePagination';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Link from 'next/link';
 
 const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
     const { data: session, status } = useSession();
@@ -108,52 +107,56 @@ const DocUserVitalHolder = ({ patientId }: { patientId: string }) => {
                                         key={vital._id}
                                         className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-150 cursor-pointer"
                                         role="row"
+                                        onClick={() => router.push(`${pathname}/${vital._id}`)}
                                     >
-                                        <Link href={`${pathname}/${vital._id}`} passHref legacyBehavior>
-                                            <td className="p-4 text-gray-600">
-                                                {vital.timestamp
-                                                    ? new Date(vital.timestamp).toLocaleString('en-US', {
-                                                        dateStyle: 'medium',
-                                                        timeStyle: 'short',
-                                                    })
-                                                    : 'N/A'}
-                                            </td>
-                                            <td className="p-4 text-gray-600">{vital.status || '-'}</td>
-                                            <td className="p-4 text-gray-600">{vital.heartRate ? `${vital.heartRate} bpm` : '-'}</td>
-
-                                            <td className="p-4 text-gray-600">{vital.glucoseLevel ? `${vital.glucoseLevel} mg/dL` : '-'}</td>
-                                            <td className="p-4 text-gray-600">{vital.temperature ? `${vital.temperature}°C` : '-'}</td>
-                                            <td className="p-4 text-gray-600">
-                                                {vital.injury && vital.injury.type !== 'none'
-                                                    ? `${vital.injury.type} (${vital.injury.severity || 'N/A'}) ${vital.injury.description || ''}`
-                                                    : '-'}
-                                            </td>
-                                            <td className="p-4 text-gray-600">{vital.priority || '-'}</td>
-                                            <td className="p-4">
-                                                {vital.visuals && vital.visuals.length > 0 ? (
-                                                    <div className="flex gap-2">
-                                                        {vital.visuals.map((visual, index) => (
-                                                            <button
-                                                                key={index}
-                                                                onClick={() => handleImageClick(visual)}
-                                                                className="focus:outline-none"
-                                                                aria-label={`View visual ${index + 1}`}
-                                                            >
-                                                                <Image
-                                                                    src={visual}
-                                                                    alt={`Vital visual ${index + 1}`}
-                                                                    width={40}
-                                                                    height={40}
-                                                                    className="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity duration-150"
-                                                                />
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-gray-400">-</span>
-                                                )}
-                                            </td>
-                                        </Link>
+                                        <td className="p-4 text-gray-600">
+                                            {vital.timestamp
+                                                ? new Date(vital.timestamp).toLocaleString('en-US', {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'short',
+                                                })
+                                                : 'N/A'}
+                                        </td>
+                                        <td className="p-4 text-gray-600">{vital.status || '-'}</td>
+                                        <td className="p-4 text-gray-600">
+                                            {vital.heartRate ? `${vital.heartRate} bpm` : '-'}
+                                        </td>
+                                        <td className="p-4 text-gray-600">
+                                            {vital.glucoseLevel ? `${vital.glucoseLevel} mg/dL` : '-'}
+                                        </td>
+                                        <td className="p-4 text-gray-600">
+                                            {vital.temperature ? `${vital.temperature}°C` : '-'}
+                                        </td>
+                                        <td className="p-4 text-gray-600">
+                                            {vital.injury && vital.injury.type !== 'none'
+                                                ? `${vital.injury.type} (${vital.injury.severity || 'N/A'}) ${vital.injury.description || ''}`
+                                                : '-'}
+                                        </td>
+                                        <td className="p-4 text-gray-600">{vital.priority || '-'}</td>
+                                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                            {vital.visuals && vital.visuals.length > 0 ? (
+                                                <div className="flex gap-2">
+                                                    {vital.visuals.map((visual, index) => (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => handleImageClick(visual)}
+                                                            className="focus:outline-none"
+                                                            aria-label={`View visual ${index + 1}`}
+                                                        >
+                                                            <Image
+                                                                src={visual}
+                                                                alt={`Vital visual ${index + 1}`}
+                                                                width={40}
+                                                                height={40}
+                                                                className="w-10 h-10 object-cover rounded hover:opacity-80 transition-opacity duration-150"
+                                                            />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
